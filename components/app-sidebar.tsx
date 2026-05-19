@@ -1,8 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { BookOpen, CalendarDays, ChevronDown, Dumbbell, Home, LineChart, Settings, Sparkles, SquareLibrary, Waves } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { BookOpen, CalendarDays, LogOut, Dumbbell, Home, LineChart, Settings, Sparkles, SquareLibrary, Waves } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -16,8 +17,47 @@ const nav = [
   { href: "/settings", label: "Settings", icon: Settings }
 ];
 
+const AUTH_KEY = "voiceflex_auth";
+
+interface AuthUser {
+  name: string;
+  email: string;
+  plan: string;
+}
+
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "VF";
+}
+
 export function AppSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [user, setUser] = useState<AuthUser>({ name: "Alex Morgan", email: "alex@example.com", plan: "Premium" });
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(AUTH_KEY);
+      if (!raw) return;
+      const auth = JSON.parse(raw) as { user?: Partial<AuthUser> };
+      setUser({
+        name: auth.user?.name || "Alex Morgan",
+        email: auth.user?.email || "alex@example.com",
+        plan: auth.user?.plan || "Premium"
+      });
+    } catch {
+      setUser({ name: "Alex Morgan", email: "alex@example.com", plan: "Premium" });
+    }
+  }, []);
+
+  const logout = () => {
+    window.localStorage.removeItem(AUTH_KEY);
+    router.replace("/login");
+  };
 
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-[296px] flex-col bg-[radial-gradient(circle_at_0_0,rgba(23,107,255,.25),transparent_34%),linear-gradient(180deg,#001a3a_0%,#001733_100%)] px-4 py-8 text-white lg:flex">
@@ -56,13 +96,23 @@ export function AppSidebar() {
           <Button className="mt-6 bg-cyan-300 px-8 text-navy-900 hover:bg-cyan-200">Upgrade Now</Button>
         </div>
 
-        <div className="flex items-center gap-4 px-3">
-          <div className="grid h-16 w-16 place-items-center rounded-full border-2 border-white/25 bg-gradient-to-br from-white to-blue-100 text-xl font-bold text-navy-900">AM</div>
-          <div className="min-w-0">
-            <p className="text-lg font-bold">Alex Morgan</p>
-            <p className="text-base font-medium text-cyan-300">Premium</p>
+        <div className="flex items-center gap-3 px-3">
+          <div className="grid h-16 w-16 shrink-0 place-items-center rounded-full border-2 border-white/25 bg-gradient-to-br from-white to-blue-100 text-xl font-bold text-navy-900">
+            {getInitials(user.name)}
           </div>
-          <ChevronDown className="ml-auto h-5 w-5 text-white/80" />
+          <div className="min-w-0 flex-1" title={user.email}>
+            <p className="truncate text-lg font-bold">{user.name}</p>
+            <p className="text-base font-medium text-cyan-300">{user.plan}</p>
+            <p className="truncate text-xs text-white/55">{user.email}</p>
+          </div>
+          <button
+            onClick={logout}
+            className="grid h-10 w-10 place-items-center rounded-xl text-white/75 transition hover:bg-white/10 hover:text-white"
+            aria-label="Log out"
+            title="Log out"
+          >
+            <LogOut className="h-5 w-5" />
+          </button>
         </div>
       </div>
     </aside>
