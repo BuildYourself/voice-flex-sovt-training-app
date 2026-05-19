@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f8fbff;
+  --foreground: #07111f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: var(--background);
+}
+
+body {
+  min-height: 100%;
+  margin: 0;
+  color: var(--foreground);
+  background:
+    radial-gradient(circle at 55% -10%, rgba(57, 139, 255, 0.12), transparent 30%),
+    linear-gradient(180deg, #fbfdff 0%, #f6f9fd 100%);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.card-shell {
+  @apply rounded-2xl border border-slate-200/80 bg-white shadow-card;
+}
+
+.soft-panel {
+  background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(245,249,255,0.95));
+}
+
+.voice-wave {
+  background-image:
+    linear-gradient(90deg, rgba(70,215,232,.95), rgba(23,107,255,.9), rgba(117,91,255,.85)),
+    repeating-linear-gradient(90deg, transparent 0 11px, rgba(255,255,255,.6) 11px 14px);
+  mask-image: radial-gradient(ellipse at center, #000 58%, transparent 72%);
+}
+
+.hero-person {
+  background:
+    radial-gradient(circle at 70% 30%, rgba(255,255,255,.38), transparent 18%),
+    radial-gradient(circle at 76% 42%, rgba(7,17,31,.92) 0 8%, transparent 8.5%),
+    radial-gradient(circle at 78% 54%, rgba(30,47,72,.95) 0 15%, transparent 15.5%),
+    linear-gradient(100deg, transparent 0 28%, rgba(0,0,0,.04) 29% 42%, rgba(16,50,89,.32) 43% 100%);
+}
+
+.mini-wave {
+  background: url("data:image/svg+xml,%3Csvg width='260' height='64' viewBox='0 0 260 64' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2 47C23 48 26 44 38 44C55 44 54 55 70 55C88 55 91 35 107 35C125 35 125 48 141 48C162 48 159 26 177 26C197 26 199 55 215 55C232 55 232 12 253 12' stroke='%23176BFF' stroke-width='3' stroke-linecap='round'/%3E%3Cpath d='M2 57C22 58 30 54 42 54C58 54 63 62 79 62C98 62 98 46 115 46C134 46 135 57 152 57C172 57 170 39 188 39C207 39 211 63 226 63C241 63 240 31 258 31' stroke='%2346D7E8' stroke-opacity='.42' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") right bottom / 170px 42px no-repeat;
+}
