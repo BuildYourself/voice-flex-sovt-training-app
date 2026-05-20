@@ -50,7 +50,7 @@ function resolveAchievements(progress: Required<StoredProgress>) {
   return Array.from(ids);
 }
 
-export function saveVoiceFlexProSession(stepsCompleted: number) {
+export function saveVoiceFlexProSession(stepsCompleted: number, exerciseTitles?: string[], totalMinutes?: number) {
   if (typeof window === "undefined") return;
 
   const progress = getStoredProgress();
@@ -58,7 +58,7 @@ export function saveVoiceFlexProSession(stepsCompleted: number) {
   const nextProgress = {
     ...progress,
     sessionsCompleted: progress.sessionsCompleted + 1,
-    totalMinutes: progress.totalMinutes + 10.5,
+    totalMinutes: progress.totalMinutes + (totalMinutes ?? 10.5),
     dayStreak: progress.dayStreak + 1,
     currentDay: Math.min(progress.durationDays, day + 1),
     completedDays: Array.from(new Set([...progress.completedDays, day])).sort((a, b) => a - b),
@@ -70,9 +70,9 @@ export function saveVoiceFlexProSession(stepsCompleted: number) {
     id: crypto.randomUUID(),
     sessionName: voiceFlexProSession.displayName,
     completedAt: new Date().toISOString(),
-    totalMinutes: 10.5,
+    totalMinutes: totalMinutes ?? 10.5,
     stepsCompleted,
-    exercises: voiceFlexProSession.steps.map((step) => step.title)
+    exercises: exerciseTitles ?? voiceFlexProSession.steps.map((step) => step.title)
   };
 
   let sessions: unknown[] = [];

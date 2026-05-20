@@ -6,52 +6,141 @@ import { AlertTriangle, Check, CheckCircle2, Expand, Pause, Play, Shield, SkipBa
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { voiceFlexProSession } from "@/lib/session-data";
+import { DEFAULT_PROGRAM_DAY, getClientProgramPlan, resolveValidSelectedSlug, type DbExercise } from "@/lib/programs-client";
 import { saveVoiceFlexProSession } from "@/lib/session-localstorage";
 import { cn } from "@/lib/utils";
 
+interface SessionStep {
+  id: string;
+  title: string;
+  durationSeconds: number;
+  displayDuration: string;
+  tool: string;
+  instruction: string;
+  whatToDoNow: string;
+  howItShouldFeel: string[];
+  commonMistakes: string[];
+  safetyNote: string;
+}
+
+const defaultSafetyNote = "If you feel pain, discomfort, dizziness, or scratchiness, stop and rest. These exercises should feel easy and relaxed.";
+
+function mapExerciseToStep(exercise: DbExercise): SessionStep {
+  return {
+    id: exercise.id,
+    title: exercise.title,
+    durationSeconds: exercise.duration_seconds,
+    displayDuration: exercise.display_duration || `${exercise.duration_seconds / 60} min`,
+    tool: exercise.tool || "Voice Flex Tool",
+    instruction: exercise.instruction || "Follow the guided exercise with smooth, steady airflow.",
+    whatToDoNow: exercise.what_to_do_now || "Follow the instructions above and stay relaxed.",
+    howItShouldFeel: exercise.how_it_should_feel,
+    commonMistakes: exercise.common_mistakes,
+    safetyNote: exercise.safety_note || defaultSafetyNote
+  };
+}
+
 function formatClock(totalSeconds: number) {
-  const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
-  const seconds = Math.floor(totalSeconds % 60).toString().padStart(2, "0");
+  const minutes = Math.floor(totalSeconds / 60)
+    .toString()
+    .padStart(2, "0");
+  const seconds = Math.floor(totalSeconds % 60)
+    .toString()
+    .padStart(2, "0");
   return `${minutes}:${seconds}`;
 }
 
 function formatElapsed(seconds: number) {
   const minutes = Math.floor(seconds / 60);
-  const rest = Math.floor(seconds % 60).toString().padStart(2, "0");
+  const rest = Math.floor(seconds % 60)
+    .toString()
+    .padStart(2, "0");
   return `${minutes}:${rest}`;
 }
 
-export function ProSessionScreen() {
+export function ProSessionScreen({ initialExercises }: { initialExercises: DbExercise[] }) {
   const router = useRouter();
-  const steps = voiceFlexProSession.steps;
+  const [steps, setSteps] = useState<SessionStep[]>(initialExercises.map(mapExerciseToStep));
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [remaining, setRemaining] = useState(steps[0].durationSeconds);
+  const [remaining, setRemaining] = useState(initialExercises[0]?.duration_seconds || 0);
   const [running, setRunning] = useState(false);
   const [completed, setCompleted] = useState<number[]>([]);
   const [elapsed, setElapsed] = useState(0);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const totalSeconds = useMemo(() => steps.reduce((sum, step) => sum + step.durationSeconds, 0), [steps]);
   const current = steps[currentIndex];
-  const stepProgress = ((current.durationSeconds - remaining) / current.durationSeconds) * 100;
+  const stepProgress = current ? ((current.durationSeconds - remaining) / Math.max(1, current.durationSeconds)) * 100 : 0;
+
+  useEffect(() => {
+    resolveValidSelectedSlug().then((selectedSlug) => {
+      return getClientProgramPlan(selectedSlug, DEFAULT_PROGRAM_DAY).then((result) => {
+        if (result.error) {
+          setLoadError(result.error);
+          return;
+        }
+        if (!result.program) {
+          setLoadError("No programs found.");
+          return;
+        }
+        if (!result.day) {
+          setLoadError("Program day not found.");
+          return;
+        }
+        if (!result.exercises.length) {
+          setLoadError("No exercises found for this day.");
+          return;
+        }
+        const loaded = result.exercises;
+        setLoadError(null);
+        setSteps(loaded.map(mapExerciseToStep));
+        setCurrentIndex(0);
+        setRemaining(loaded[0].duration_seconds);
+        setCompleted([]);
+        setElapsed(0);
+      });
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!initialExercises.length && !loadError) {
+      setLoadError("No exercises found for this day.");
+      return;
+    }
+  }, [initialExercises, loadError]);
+
+  useEffect(() => {
+    if (!steps.length && !loadError) {
+      setLoadError("No exercises found for this day.");
+    }
+  }, [steps, loadError]);
+
+  useEffect(() => {
+    if (steps.length) {
+      setLoadError(null);
+    }
+  }, [steps]);
 
   const completeCurrentStep = useCallback(() => {
     setCompleted((items) => Array.from(new Set([...items, currentIndex])));
     if (currentIndex >= steps.length - 1) {
-      saveVoiceFlexProSession(7);
+      saveVoiceFlexProSession(steps.length, steps.map((step) => step.title), totalSeconds / 60);
       router.push("/progress");
       return;
     }
     setCurrentIndex((index) => index + 1);
-  }, [currentIndex, router, steps.length]);
+  }, [currentIndex, router, steps, totalSeconds]);
 
   useEffect(() => {
+    if (!steps[currentIndex]) return;
     setRemaining(steps[currentIndex].durationSeconds);
     setRunning(false);
   }, [currentIndex, steps]);
 
   useEffect(() => {
-    if (!running) return;
+    if (!running || !steps.length) return;
     const id = window.setInterval(() => {
-      setElapsed((value) => Math.min(voiceFlexProSession.totalSeconds, value + 1));
+      setElapsed((value) => Math.min(totalSeconds, value + 1));
       setRemaining((value) => {
         if (value <= 1) {
           window.clearInterval(id);
@@ -62,25 +151,32 @@ export function ProSessionScreen() {
       });
     }, 1000);
     return () => window.clearInterval(id);
-  }, [completeCurrentStep, running]);
+  }, [completeCurrentStep, running, steps.length, totalSeconds]);
 
-  const previous = () => {
-    setCurrentIndex((index) => Math.max(0, index - 1));
-  };
-
+  const previous = () => setCurrentIndex((index) => Math.max(0, index - 1));
   const skip = () => {
-    setElapsed((value) => Math.min(voiceFlexProSession.totalSeconds, value + remaining));
+    setElapsed((value) => Math.min(totalSeconds, value + remaining));
     completeCurrentStep();
   };
 
-  const overviewProgress = Math.min(100, (elapsed / voiceFlexProSession.totalSeconds) * 100);
+  const overviewProgress = totalSeconds ? Math.min(100, (elapsed / totalSeconds) * 100) : 0;
   const upcoming = steps.slice(currentIndex + 1);
+
+  if (!steps.length || !current) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center text-slate-600">
+          {loadError ?? "Loading your guided session..."}
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-5">
-      <CompactSessionStepper currentIndex={currentIndex} completed={completed} />
+      <CompactSessionStepper steps={steps} currentIndex={currentIndex} completed={completed} />
       <div className="grid gap-6 2xl:grid-cols-[330px_minmax(0,1fr)_390px]">
-        <SessionFlow currentIndex={currentIndex} completed={completed} />
+        <SessionFlow steps={steps} currentIndex={currentIndex} completed={completed} />
 
         <div className="order-1 space-y-5 2xl:order-2">
           <Card className="overflow-hidden">
@@ -91,7 +187,9 @@ export function ProSessionScreen() {
                   <span className="text-base font-medium sm:text-lg">Current Exercise</span>
                 </div>
                 <div className="flex items-center gap-5">
-                  <span className="rounded-lg bg-blue-100 px-3 py-2 text-sm font-bold text-electric-700 sm:px-4 sm:text-base">Step {currentIndex + 1} of 7</span>
+                  <span className="rounded-lg bg-blue-100 px-3 py-2 text-sm font-bold text-electric-700 sm:px-4 sm:text-base">
+                    Step {currentIndex + 1} of {steps.length}
+                  </span>
                   <Expand className="hidden h-6 w-6 text-slate-500 sm:block" />
                 </div>
               </div>
@@ -143,7 +241,8 @@ export function ProSessionScreen() {
                   {running ? <Pause className="h-8 w-8 fill-current sm:h-10 sm:w-10" /> : <Play className="h-8 w-8 fill-current sm:h-10 sm:w-10" />}
                 </button>
                 <button onClick={skip} className="flex items-center justify-center gap-3 rounded-full py-5 font-bold text-slate-800 hover:bg-slate-50">
-                  <span className="hidden sm:inline">Skip Step</span><span className="sm:hidden">Skip</span> <SkipForward className="h-5 w-5" />
+                  <span className="hidden sm:inline">Skip Step</span>
+                  <span className="sm:hidden">Skip</span> <SkipForward className="h-5 w-5" />
                 </button>
               </div>
               <p className="mt-5 text-center text-sm text-slate-600">{running ? "Pause" : "Start Exercise"}</p>
@@ -151,9 +250,19 @@ export function ProSessionScreen() {
           </Card>
 
           <div className="grid gap-5 md:grid-cols-3">
-            <GuidanceCard icon={<Target className="h-8 w-8" />} title="What to do now" text="Follow the instructions above. Keep the bubbles small and steady. Stay relaxed." tone="green" />
-            <GuidanceCard icon={<CheckCircle2 className="h-8 w-8" />} title="How it should feel" text="You should feel light resistance and steady bubbling. No strain, no throat pressure." tone="blue" />
-            <GuidanceCard icon={<AlertTriangle className="h-8 w-8" />} title="Common mistakes" text="Blowing too hard or making large bubbles. Keep it soft and easy." tone="red" />
+            <GuidanceCard icon={<Target className="h-8 w-8" />} title="What to do now" text={current.whatToDoNow} tone="green" />
+            <GuidanceCard
+              icon={<CheckCircle2 className="h-8 w-8" />}
+              title="How it should feel"
+              text={current.howItShouldFeel.length ? current.howItShouldFeel.join(". ") + "." : "You should feel steady, easy airflow with no strain."}
+              tone="blue"
+            />
+            <GuidanceCard
+              icon={<AlertTriangle className="h-8 w-8" />}
+              title="Common mistakes"
+              text={current.commonMistakes.length ? current.commonMistakes.join(". ") + "." : "Keep it soft and easy."}
+              tone="red"
+            />
           </div>
         </div>
 
@@ -161,23 +270,33 @@ export function ProSessionScreen() {
           <Card>
             <CardContent className="p-6 sm:p-8">
               <div className="flex items-center gap-4">
-                <span className="grid h-8 w-8 place-items-center rounded-full text-electric-700"><Waves className="h-8 w-8" /></span>
+                <span className="grid h-8 w-8 place-items-center rounded-full text-electric-700">
+                  <Waves className="h-8 w-8" />
+                </span>
                 <h3 className="text-2xl font-black">Session Overview</h3>
               </div>
               <p className="mt-9 text-slate-600">Total Length</p>
-              <p className="mt-3 text-4xl font-black">10:30 <span className="text-xl">min</span></p>
+              <p className="mt-3 text-4xl font-black">
+                {(totalSeconds / 60).toFixed(1)} <span className="text-xl">min</span>
+              </p>
               <Progress value={overviewProgress} className="mt-8 h-4" indicatorClassName="bg-emerald-400" />
               <div className="mt-4 flex justify-between text-sm text-slate-500">
                 <span>{formatElapsed(elapsed)} completed</span>
-                <span>{voiceFlexProSession.totalDisplay} total</span>
+                <span>{formatClock(totalSeconds)} total</span>
               </div>
               <div className="mt-10 grid grid-cols-2 divide-x divide-slate-200 text-center">
                 <div>
-                  <p className="flex items-center justify-center gap-2 text-2xl font-black"><CheckCircle2 className="h-7 w-7 text-electric-600" />{completed.length}</p>
+                  <p className="flex items-center justify-center gap-2 text-2xl font-black">
+                    <CheckCircle2 className="h-7 w-7 text-electric-600" />
+                    {completed.length}
+                  </p>
                   <p className="mt-2 text-slate-600">Steps Completed</p>
                 </div>
                 <div>
-                  <p className="flex items-center justify-center gap-2 text-2xl font-black"><Star className="h-7 w-7 text-amber-400" />{completed.length >= 7 ? 1 : 0}</p>
+                  <p className="flex items-center justify-center gap-2 text-2xl font-black">
+                    <Star className="h-7 w-7 text-amber-400" />
+                    {completed.length >= steps.length ? 1 : 0}
+                  </p>
                   <p className="mt-2 text-slate-600">Achievements</p>
                 </div>
               </div>
@@ -204,52 +323,59 @@ export function ProSessionScreen() {
 
       <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm leading-6 text-slate-800 sm:px-6">
         <Shield className="mr-3 inline h-6 w-6 text-amber-500" />
-        <b>Safety Note:</b> If you feel pain, discomfort, dizziness, or scratchiness, stop and rest. These exercises should feel easy and relaxed.
+        <b>Safety Note:</b> {current.safetyNote || defaultSafetyNote}
       </div>
     </div>
   );
 }
 
-function SessionFlow({ currentIndex, completed }: { currentIndex: number; completed: number[] }) {
+function SessionFlow({ steps, currentIndex, completed }: { steps: SessionStep[]; currentIndex: number; completed: number[] }) {
   return (
     <Card className="order-2 hidden min-h-[820px] 2xl:order-1 2xl:block">
       <CardHeader>
         <CardTitle className="text-2xl">Session Flow</CardTitle>
-        <span className="text-slate-600">7 Steps</span>
+        <span className="text-slate-600">{steps.length} Steps</span>
       </CardHeader>
       <CardContent className="space-y-4">
-        {voiceFlexProSession.steps.map((step, index) => {
+        {steps.map((step, index) => {
           const isCurrent = index === currentIndex;
           const isCompleted = completed.includes(index);
           return (
             <div key={step.id} className={cn("relative grid grid-cols-[46px_1fr] gap-3 rounded-2xl p-3", isCurrent && "border border-electric-600 bg-blue-50")}>
-              {index < voiceFlexProSession.steps.length - 1 && <span className="absolute left-[39px] top-14 h-14 border-l-2 border-dashed border-slate-300" />}
+              {index < steps.length - 1 && <span className="absolute left-[39px] top-14 h-14 border-l-2 border-dashed border-slate-300" />}
               <span className={cn("relative z-10 grid h-10 w-10 place-items-center rounded-full bg-slate-300 text-lg font-bold text-white", isCurrent && "bg-electric-600", isCompleted && "bg-emerald-500")}>
                 {isCompleted ? <Check className="h-5 w-5" /> : index + 1}
               </span>
               <div>
                 <p className={cn("text-base font-black", isCurrent && "text-electric-700")}>{step.title}</p>
-                <p className={cn("mt-1 text-sm text-slate-600", isCurrent && "font-bold text-electric-700")}>{step.displayDuration}{isCurrent ? " - Current" : ""}</p>
+                <p className={cn("mt-1 text-sm text-slate-600", isCurrent && "font-bold text-electric-700")}>
+                  {step.displayDuration}
+                  {isCurrent ? " - Current" : ""}
+                </p>
               </div>
             </div>
           );
         })}
-        <Button variant="outline" className="mt-9 w-full justify-between">View full plan <SkipForward className="h-4 w-4" /></Button>
+        <Button variant="outline" className="mt-9 w-full justify-between">
+          View full plan <SkipForward className="h-4 w-4" />
+        </Button>
       </CardContent>
     </Card>
   );
 }
 
-function CompactSessionStepper({ currentIndex, completed }: { currentIndex: number; completed: number[] }) {
+function CompactSessionStepper({ steps, currentIndex, completed }: { steps: SessionStep[]; currentIndex: number; completed: number[] }) {
   return (
     <Card className="2xl:hidden">
       <CardContent className="p-4">
         <div className="mb-3 flex items-center justify-between">
           <p className="font-black">Session Flow</p>
-          <p className="text-sm text-slate-500">Step {currentIndex + 1} of 7</p>
+          <p className="text-sm text-slate-500">
+            Step {currentIndex + 1} of {steps.length}
+          </p>
         </div>
         <div className="grid grid-cols-7 gap-2">
-          {voiceFlexProSession.steps.map((step, index) => {
+          {steps.map((step, index) => {
             const active = index === currentIndex;
             const done = completed.includes(index);
             return (
@@ -301,3 +427,5 @@ function GuidanceCard({ icon, title, text, tone }: { icon: React.ReactNode; titl
     </Card>
   );
 }
+
+
