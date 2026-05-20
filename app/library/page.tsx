@@ -20,18 +20,18 @@ export default function LibraryPage() {
 
   return (
     <AppShell title="Exercise Library" subtitle="Choose a focused drill and keep building your best voice.">
-      <div className="mb-5 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-card md:flex-row md:items-center">
+      <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-card md:flex-row md:items-center">
         <div className="flex flex-1 items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
           <Search className="h-5 w-5 text-slate-400" />
           <span className="text-slate-500">Search exercises</span>
         </div>
         <div className="flex flex-wrap gap-2">
           {filters.map((item) => (
-            <button key={item} onClick={() => setFilter(item)} className={cn("rounded-xl px-4 py-2 text-sm font-bold", filter === item ? "bg-electric-600 text-white" : "bg-slate-100 text-slate-600")}>{item}</button>
+            <button key={item} onClick={() => setFilter(item)} className={cn("min-h-10 rounded-xl px-4 py-2 text-sm font-bold", filter === item ? "bg-electric-600 text-white" : "bg-slate-100 text-slate-600")}>{item}</button>
           ))}
         </div>
       </div>
-      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
         {visible.map((exercise) => (
           <Card key={exercise.id}>
             <CardContent className="p-6">
@@ -41,9 +41,9 @@ export default function LibraryPage() {
               </div>
               <h2 className="mt-6 text-2xl font-black">{exercise.title}</h2>
               <p className="mt-3 leading-7 text-slate-600">{exercise.description}</p>
-              <div className="mt-6 flex items-center justify-between">
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <span className="font-bold text-slate-700">{exercise.durationMinutes} min • {exercise.type}</span>
-                <Button><Play className="h-4 w-4 fill-current" />Start</Button>
+                <Button className="min-h-11"><Play className="h-4 w-4 fill-current" />Start</Button>
               </div>
             </CardContent>
           </Card>

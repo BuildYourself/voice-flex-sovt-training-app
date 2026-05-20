@@ -19,12 +19,12 @@ export default function ProgramsPage() {
   return (
     <AppShell title="Choose Your Path" subtitle="Start where you are. Follow the system. Build your best voice.">
       <Roadmap wide />
-      <Card className="mt-5">
+      <Card className="mt-6">
         <CardHeader>
           <CardTitle>Guided Programs</CardTitle>
           <span className="text-sm font-bold text-electric-700">View all programs</span>
         </CardHeader>
-        <CardContent className="grid gap-4 xl:grid-cols-6">
+        <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
           {programs.map((program, index) => {
             const Icon = icons[index];
             return (
@@ -42,10 +42,10 @@ export default function ProgramsPage() {
           })}
         </CardContent>
       </Card>
-      <div className="mt-5 grid gap-5 xl:grid-cols-[1fr_1.08fr_1.52fr]">
+      <div className="mt-6 grid gap-6 2xl:grid-cols-[1fr_1.08fr_1.52fr]">
         <Card>
           <CardHeader><CardTitle>How Voice Flex Works</CardTitle></CardHeader>
-          <CardContent className="grid grid-cols-3 gap-5 text-center">
+          <CardContent className="grid gap-5 text-center sm:grid-cols-3">
             {[
               ["1. Follow the guided session", "Short, focused lessons that build the right skills in the right order.", "▶"],
               ["2. Stay consistent with the calendar", "Daily practice builds momentum and turns skills into habits.", "▣"],

@@ -1,27 +1,49 @@
 import { AppSidebar } from "@/components/app-sidebar";
 import { AuthGuard } from "@/components/auth-guard";
 import { TopStats } from "@/components/top-stats";
+import { Waves } from "lucide-react";
+import Link from "next/link";
+import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import type React from "react";
 
 export function AppShell({ title, subtitle, children, pill }: { title: string; subtitle: string; children: React.ReactNode; pill?: React.ReactNode }) {
   return (
     <AuthGuard>
-      <div className="min-h-screen">
+      <div className="min-h-screen overflow-x-hidden">
         <AppSidebar />
-        <main className="px-4 py-7 lg:ml-[296px] lg:px-9">
-          <header className="mb-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <MobileHeader />
+        <main className="px-4 pb-28 pt-4 sm:px-6 lg:ml-[272px] lg:px-8 lg:py-8 xl:px-10">
+          <div className="mx-auto w-full max-w-[1780px]">
+          <header className="mb-7 flex flex-col gap-4 md:flex-row md:items-start md:justify-between lg:mb-9">
             <div>
-              <h1 className="text-3xl font-black tracking-normal text-black md:text-[34px]">{title}</h1>
-              <p className="mt-1 text-lg text-slate-600">{subtitle}</p>
+              <h1 className="text-[28px] font-black leading-tight tracking-normal text-black md:text-[32px] xl:text-[34px]">{title}</h1>
+              <p className="mt-1.5 text-base text-slate-600 md:text-lg">{subtitle}</p>
             </div>
-            <div className="flex flex-col items-end gap-4">
+            <div className="hidden flex-col items-end gap-4 md:flex">
               <TopStats />
               {pill}
             </div>
+            {pill && <div className="md:hidden">{pill}</div>}
           </header>
           {children}
+          </div>
         </main>
+        <MobileBottomNav />
       </div>
     </AuthGuard>
+  );
+}
+
+function MobileHeader() {
+  return (
+    <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/92 px-4 py-3 backdrop-blur lg:hidden">
+      <div className="flex items-center justify-between">
+        <Link href="/dashboard" className="flex items-center gap-2 font-black text-navy-950">
+          <span className="grid h-10 w-10 place-items-center rounded-2xl bg-navy-950 text-cyan-300"><Waves className="h-6 w-6" /></span>
+          Voice Flex
+        </Link>
+        <TopStats />
+      </div>
+    </header>
   );
 }

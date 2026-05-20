@@ -5,9 +5,8 @@ import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, EyeOff, Info, Lock, Mail, ShieldCheck, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AUTH_KEY, getAuth, setAuth } from "@/lib/storage";
 import { cn } from "@/lib/utils";
-
-const AUTH_KEY = "voiceflex_auth";
 
 type Mode = "login" | "create";
 
@@ -33,14 +32,7 @@ function LoginForm() {
   const next = params.get("next") || "/dashboard";
 
   useEffect(() => {
-    const raw = window.localStorage.getItem(AUTH_KEY);
-    if (!raw) return;
-    try {
-      const auth = JSON.parse(raw) as { isLoggedIn?: boolean };
-      if (auth.isLoggedIn) router.replace("/dashboard");
-    } catch {
-      window.localStorage.removeItem(AUTH_KEY);
-    }
+    if (getAuth()) router.replace("/dashboard");
   }, [router]);
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
@@ -63,7 +55,7 @@ function LoginForm() {
       }
     };
 
-    window.localStorage.setItem(AUTH_KEY, JSON.stringify(auth));
+    setAuth(auth);
     router.replace(next.startsWith("/") ? next : "/dashboard");
   };
 

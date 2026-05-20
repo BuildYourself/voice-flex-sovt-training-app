@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { BookOpen, CalendarDays, LogOut, Dumbbell, Home, LineChart, Settings, Sparkles, SquareLibrary, Waves } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { getAuth, logout as clearAuth } from "@/lib/storage";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: Home },
@@ -16,8 +17,6 @@ const nav = [
   { href: "/library", label: "Library", icon: BookOpen },
   { href: "/settings", label: "Settings", icon: Settings }
 ];
-
-const AUTH_KEY = "voiceflex_auth";
 
 interface AuthUser {
   name: string;
@@ -41,9 +40,8 @@ export function AppSidebar() {
 
   useEffect(() => {
     try {
-      const raw = window.localStorage.getItem(AUTH_KEY);
-      if (!raw) return;
-      const auth = JSON.parse(raw) as { user?: Partial<AuthUser> };
+      const auth = getAuth();
+      if (!auth) return;
       setUser({
         name: auth.user?.name || "Alex Morgan",
         email: auth.user?.email || "alex@example.com",
@@ -55,20 +53,20 @@ export function AppSidebar() {
   }, []);
 
   const logout = () => {
-    window.localStorage.removeItem(AUTH_KEY);
+    clearAuth();
     router.replace("/login");
   };
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-30 hidden w-[296px] flex-col bg-[radial-gradient(circle_at_0_0,rgba(23,107,255,.25),transparent_34%),linear-gradient(180deg,#001a3a_0%,#001733_100%)] px-4 py-8 text-white lg:flex">
-      <Link href="/dashboard" className="mb-10 flex items-center gap-3 px-3">
-        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-blue-500/10 text-cyan-300">
-          <Waves className="h-9 w-9" />
+    <aside className="fixed inset-y-0 left-0 z-30 hidden w-[272px] flex-col bg-[radial-gradient(circle_at_0_0,rgba(23,107,255,.25),transparent_34%),linear-gradient(180deg,#001a3a_0%,#001733_100%)] px-4 py-7 text-white lg:flex">
+      <Link href="/dashboard" className="mb-9 flex items-center gap-3 px-2">
+        <div className="grid h-11 w-11 place-items-center rounded-2xl bg-blue-500/10 text-cyan-300">
+          <Waves className="h-8 w-8" />
         </div>
-        <span className="text-3xl font-bold">Voice Flex</span>
+        <span className="text-[27px] font-bold">Voice Flex</span>
       </Link>
 
-      <nav className="space-y-2">
+      <nav className="space-y-1.5">
         {nav.map((item) => {
           const Icon = item.icon;
           const active = pathname === item.href || (pathname === "/session" && item.href === "/dashboard");
@@ -77,7 +75,7 @@ export function AppSidebar() {
               key={`${item.href}-${item.label}`}
               href={item.href}
               className={cn(
-                "flex h-14 items-center gap-4 rounded-xl px-5 text-lg font-semibold text-white/92 transition hover:bg-white/8",
+                "flex h-[52px] items-center gap-4 rounded-xl px-4 text-base font-semibold text-white/92 transition hover:bg-white/8",
                 active && "bg-electric-600 shadow-lg shadow-blue-950/25"
               )}
             >
@@ -89,15 +87,15 @@ export function AppSidebar() {
       </nav>
 
       <div className="mt-auto space-y-8">
-        <div className="mx-1 rounded-2xl bg-gradient-to-br from-electric-600 via-electric-700 to-navy-800 p-6 shadow-2xl shadow-blue-950/30">
-          <Sparkles className="ml-auto h-7 w-7 text-cyan-300" />
-          <h3 className="mt-1 max-w-[160px] text-2xl font-bold leading-tight">Unlock your best voice</h3>
-          <p className="mt-4 text-base leading-6 text-white/90">Upgrade to Premium for advanced feedback, custom plans, and more.</p>
-          <Button className="mt-6 bg-cyan-300 px-8 text-navy-900 hover:bg-cyan-200">Upgrade Now</Button>
+        <div className="mx-0 rounded-2xl bg-gradient-to-br from-electric-600 via-electric-700 to-navy-800 p-5 shadow-2xl shadow-blue-950/30">
+          <Sparkles className="ml-auto h-6 w-6 text-cyan-300" />
+          <h3 className="mt-1 max-w-[150px] text-[22px] font-bold leading-tight">Unlock your best voice</h3>
+          <p className="mt-4 text-sm leading-6 text-white/90">Upgrade to Premium for advanced feedback, custom plans, and more.</p>
+          <Button className="mt-5 h-10 bg-cyan-300 px-7 text-sm text-navy-900 hover:bg-cyan-200">Upgrade Now</Button>
         </div>
 
         <div className="flex items-center gap-3 px-3">
-          <div className="grid h-16 w-16 shrink-0 place-items-center rounded-full border-2 border-white/25 bg-gradient-to-br from-white to-blue-100 text-xl font-bold text-navy-900">
+          <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full border-2 border-white/25 bg-gradient-to-br from-white to-blue-100 text-lg font-bold text-navy-900">
             {getInitials(user.name)}
           </div>
           <div className="min-w-0 flex-1" title={user.email}>

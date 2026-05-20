@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { AlertTriangle, Check, Clock, Maximize, Pause, Play, SkipBack, SkipForward, Waves } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,9 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Waveform } from "@/components/visuals";
 import { sessionSteps, todayExercises } from "@/lib/mock-data";
+import { completeSession } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 
-export function SessionTimeline({ currentIndex }: { currentIndex: number }) {
+export function SessionTimeline({ currentIndex, completedSteps }: { currentIndex: number; completedSteps: number[] }) {
   return (
     <Card className="h-full">
       <CardHeader>
@@ -19,7 +21,7 @@ export function SessionTimeline({ currentIndex }: { currentIndex: number }) {
       </CardHeader>
       <CardContent className="space-y-5">
         {sessionSteps.map((step, index) => {
-          const completed = index < currentIndex;
+          const completed = completedSteps.includes(index);
           const current = index === currentIndex;
           return (
             <motion.div layout key={step.id} className={cn("relative grid grid-cols-[48px_1fr] gap-4 rounded-2xl p-3", current && "border border-electric-500 bg-electric-50")}>
@@ -46,7 +48,7 @@ function formatTime(seconds: number) {
   return `${mins}:${secs}`;
 }
 
-export function ExerciseTimer({ currentIndex, onNext, onPrevious }: { currentIndex: number; onNext: () => void; onPrevious: () => void }) {
+export function ExerciseTimer({ currentIndex, onNext, onPrevious, onMinuteEarned }: { currentIndex: number; onNext: () => void; onPrevious: () => void; onMinuteEarned: () => void }) {
   const [isRunning, setIsRunning] = useState(false);
   const [remaining, setRemaining] = useState(5 * 60);
   const exercise = todayExercises[currentIndex] ?? todayExercises[1];
@@ -64,14 +66,16 @@ export function ExerciseTimer({ currentIndex, onNext, onPrevious }: { currentInd
         if (value <= 1) {
           window.clearInterval(id);
           setIsRunning(false);
+          onMinuteEarned();
           onNext();
           return 5 * 60;
         }
+        if (value % 60 === 0) onMinuteEarned();
         return value - 1;
       });
     }, 1000);
     return () => window.clearInterval(id);
-  }, [isRunning, onNext]);
+  }, [isRunning, onMinuteEarned, onNext]);
 
   return (
     <Card className="overflow-hidden bg-gradient-to-br from-blue-50 to-white">
@@ -144,8 +148,7 @@ export function InstructionCard({ title, items, tone, icon }: { title: string; i
   );
 }
 
-export function SessionOverview({ currentIndex }: { currentIndex: number }) {
-  const completed = useMemo(() => todayExercises.slice(0, currentIndex).reduce((sum, item) => sum + item.durationMinutes, 0), [currentIndex]);
+export function SessionOverview({ currentIndex, completedMinutes }: { currentIndex: number; completedMinutes: number }) {
   return (
     <div className="space-y-4">
       <Card>
@@ -156,9 +159,9 @@ export function SessionOverview({ currentIndex }: { currentIndex: number }) {
           </div>
           <p className="mt-8 text-slate-600">Total Length</p>
           <p className="mt-4 text-4xl font-black">33 <span className="text-xl">min</span></p>
-          <Progress value={(completed / 33) * 100} className="mt-8 h-4" indicatorClassName="bg-emerald-400" />
+          <Progress value={(completedMinutes / 33) * 100} className="mt-8 h-4" indicatorClassName="bg-emerald-400" />
           <div className="mt-4 flex justify-between text-sm text-slate-500">
-            <span>{completed || 12} min completed</span>
+            <span>{completedMinutes} min completed</span>
             <span>33 min total</span>
           </div>
         </CardContent>
@@ -193,23 +196,53 @@ export function SessionOverview({ currentIndex }: { currentIndex: number }) {
 }
 
 export function SessionClient() {
+  const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(1);
+  const [completedSteps, setCompletedSteps] = useState<number[]>([0]);
+  const [completedMinutes, setCompletedMinutes] = useState(12);
+  const [isComplete, setIsComplete] = useState(false);
   const exercise = todayExercises[currentIndex] ?? todayExercises[1];
-  const next = () => setCurrentIndex((value) => Math.min(todayExercises.length - 1, value + 1));
+
+  const finishSession = (note?: string, finalMinutes = completedMinutes) => {
+    if (isComplete) return;
+    setIsComplete(true);
+    const minutes = Math.min(33, Math.max(finalMinutes, completedSteps.reduce((sum, index) => sum + (todayExercises[index]?.durationMinutes ?? 0), 0)));
+    completeSession(minutes, todayExercises.map((item) => item.title), note || "Completed today's guided Voice Flex session.");
+    router.push("/progress");
+  };
+
+  const next = () => {
+    setCompletedSteps((steps) => Array.from(new Set([...steps, currentIndex])));
+    const nextMinutes = Math.min(33, Math.max(completedMinutes, todayExercises.slice(0, currentIndex + 1).reduce((sum, item) => sum + item.durationMinutes, 0)));
+    setCompletedMinutes(nextMinutes);
+    if (currentIndex >= todayExercises.length - 1) {
+      finishSession("Finished all guided exercises.", 33);
+      return;
+    }
+    setCurrentIndex((value) => Math.min(todayExercises.length - 1, value + 1));
+  };
   const previous = () => setCurrentIndex((value) => Math.max(0, value - 1));
+  const earnMinute = () => setCompletedMinutes((minutes) => Math.min(33, minutes + 1));
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[340px_1fr_395px]">
-      <SessionTimeline currentIndex={currentIndex} />
-      <div className="space-y-5">
-        <ExerciseTimer currentIndex={currentIndex} onNext={next} onPrevious={previous} />
-        <div className="grid gap-4 md:grid-cols-3">
-          <InstructionCard title="What to do now" items={exercise.instructions} tone="green" icon={<Check className="h-5 w-5" />} />
-          <InstructionCard title="How it should feel" items={exercise.howItShouldFeel} tone="blue" icon={<Check className="h-5 w-5 fill-current" />} />
-          <InstructionCard title="Common mistakes" items={exercise.commonMistakes} tone="amber" icon={<AlertTriangle className="h-5 w-5" />} />
+    <>
+      <div className="grid gap-5 xl:grid-cols-[340px_1fr_395px]">
+        <SessionTimeline currentIndex={currentIndex} completedSteps={completedSteps} />
+        <div className="space-y-5">
+          <ExerciseTimer currentIndex={currentIndex} onNext={next} onPrevious={previous} onMinuteEarned={earnMinute} />
+          <div className="grid gap-4 md:grid-cols-3">
+            <InstructionCard title="What to do now" items={exercise.instructions} tone="green" icon={<Check className="h-5 w-5" />} />
+            <InstructionCard title="How it should feel" items={exercise.howItShouldFeel} tone="blue" icon={<Check className="h-5 w-5 fill-current" />} />
+            <InstructionCard title="Common mistakes" items={exercise.commonMistakes} tone="amber" icon={<AlertTriangle className="h-5 w-5" />} />
+          </div>
         </div>
+        <SessionOverview currentIndex={currentIndex} completedMinutes={completedMinutes} />
       </div>
-      <SessionOverview currentIndex={currentIndex} />
-    </div>
+      <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-card md:flex-row md:items-center">
+        <p className="flex-1 px-4 text-slate-600">Consistency today, confidence tomorrow.</p>
+        <p className="text-slate-600">Need a break? You can pause and come back anytime.</p>
+        <Button onClick={() => finishSession("Ended session early and saved progress.")} variant="danger">End Session</Button>
+      </div>
+    </>
   );
 }

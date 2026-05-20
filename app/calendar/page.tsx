@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export default function CalendarPage() {
   return (
     <AppShell title="Training Calendar" subtitle="See your completed sessions, planned practice, rest days, and milestones.">
-      <div className="grid gap-5 xl:grid-cols-[1.2fr_.8fr]">
+      <div className="grid gap-6 2xl:grid-cols-[1.2fr_.8fr]">
         <ProgressCalendar interactive />
         <Card>
           <CardHeader><CardTitle>Completion System</CardTitle></CardHeader>

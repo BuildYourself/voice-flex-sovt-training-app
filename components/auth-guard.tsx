@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Waves } from "lucide-react";
-
-const AUTH_KEY = "voiceflex_auth";
+import { getAuth } from "@/lib/storage";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -12,23 +11,12 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const raw = window.localStorage.getItem(AUTH_KEY);
-    if (!raw) {
+    const auth = getAuth();
+    if (!auth) {
       router.replace(`/login?next=${encodeURIComponent(pathname)}`);
       return;
     }
-
-    try {
-      const auth = JSON.parse(raw) as { isLoggedIn?: boolean };
-      if (!auth.isLoggedIn) {
-        router.replace(`/login?next=${encodeURIComponent(pathname)}`);
-        return;
-      }
-      setReady(true);
-    } catch {
-      window.localStorage.removeItem(AUTH_KEY);
-      router.replace(`/login?next=${encodeURIComponent(pathname)}`);
-    }
+    setReady(true);
   }, [pathname, router]);
 
   if (!ready) {

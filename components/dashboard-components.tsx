@@ -27,7 +27,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { SingerVisual, Waveform } from "@/components/visuals";
 import { improvements, programs, todayExercises } from "@/lib/mock-data";
+import { defaultProgress, getProgress, nextMilestone, progressPercent, type VoiceFlexProgress } from "@/lib/storage";
 import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
 
 const fade = {
   initial: { opacity: 0, y: 12 },
@@ -37,35 +39,59 @@ const fade = {
 
 export function HeroCard() {
   return (
-    <motion.section {...fade} className="relative min-h-[406px] overflow-hidden rounded-2xl bg-[linear-gradient(135deg,#075ec9_0%,#003c86_45%,#001834_100%)] p-8 text-white shadow-soft">
-      <div className="relative z-10 max-w-[580px] pt-8">
-        <h2 className="text-[36px] font-black leading-tight tracking-normal">Your guided path from first note to confident voice</h2>
-        <p className="mt-8 text-xl text-white/92">Follow the system. Do the work. See the change.</p>
-        <div className="mt-14 flex flex-col gap-8 sm:flex-row sm:items-center">
-          <Button asChild className="h-14 rounded-xl bg-white px-8 text-lg text-electric-700 hover:bg-blue-50">
-            <Link href="/session"><Play className="h-6 w-6 fill-current" />Start Today's Session</Link>
+    <motion.section
+      {...fade}
+      className="relative min-h-[350px] overflow-hidden rounded-[20px] bg-[linear-gradient(90deg,rgba(6,42,88,0.98)_0%,rgba(5,74,160,0.95)_45%,rgba(3,20,42,0.88)_100%)] p-6 text-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] sm:p-10 lg:min-h-[352px] lg:p-12"
+    >
+      <img
+        src="/images/voice-flex-hero-singer.jpg"
+        alt="Singer recording with microphone"
+        className="absolute inset-y-0 right-0 object-cover object-[68%_center] opacity-55 sm:opacity-80 lg:left-auto lg:w-[50%] lg:opacity-100"
+      />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(3,20,42,0.18)_0%,rgba(3,20,42,0.05)_45%,rgba(3,20,42,0.42)_100%)]" />
+      <div className="absolute inset-y-0 right-0 hidden w-[56%] bg-[linear-gradient(90deg,rgba(5,47,105,0.95)_0%,rgba(5,47,105,0.45)_35%,rgba(5,47,105,0.05)_70%)] lg:block" />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(3,20,42,0.18)_0%,rgba(3,20,42,0.12)_48%,rgba(3,20,42,0.02)_100%)] lg:hidden" />
+
+      <div className="relative z-10 max-w-[620px]">
+        <h2 className="max-w-[520px] text-[30px] font-extrabold leading-[1.12] tracking-[-0.02em] text-white sm:text-[34px] lg:text-[36px]">
+          Your guided path from<br className="hidden sm:block" />
+          first note to confident voice
+        </h2>
+        <p className="mt-6 text-base font-medium leading-6 text-[#eaf3ff] text-white/95">Follow the system. Do the work. See the change.</p>
+
+        <div className="mt-12 flex flex-col gap-7 lg:flex-row lg:items-center">
+          <Button asChild className="h-[52px] w-fit rounded-xl bg-white px-6 text-base font-bold text-[#0b5fea] shadow-[0_8px_20px_rgba(0,0,0,0.12)] hover:bg-blue-50">
+            <Link href="/session">
+              <span className="grid h-7 w-7 place-items-center rounded-full bg-[#1665e8] text-white">
+                <Play className="ml-0.5 h-3.5 w-3.5 fill-current" />
+              </span>
+              Start Today's Session
+            </Link>
           </Button>
-          <div className="hidden h-24 w-px bg-white/20 sm:block" />
-          <div className="min-w-[360px]">
-            <p className="text-base font-medium">21-Day Transformation Program</p>
-            <p className="mt-2 text-2xl font-bold">Day 12 of 21</p>
-            <div className="mt-4 flex items-center gap-4">
-              <Progress value={57} className="h-4 w-80 bg-white/16" indicatorClassName="bg-cyan-300" />
-              <span className="text-base font-bold">57%</span>
+
+          <div className="hidden h-[70px] w-px bg-white/30 lg:block" />
+
+          <div className="w-full min-w-0 max-w-[390px]">
+            <p className="text-sm font-semibold text-white/90">21-Day Transformation Program</p>
+            <p className="mt-2 text-[23px] font-extrabold leading-tight text-white">Day 12 of 21</p>
+            <div className="mt-4 flex items-center gap-6">
+              <div className="h-3 w-full max-w-[310px] overflow-hidden rounded-full bg-white/20">
+                <div className="h-full w-[57%] rounded-full bg-[#5ce1e6]" />
+              </div>
+              <span className="text-sm font-bold text-white">57%</span>
             </div>
           </div>
         </div>
       </div>
-      <SingerVisual />
     </motion.section>
   );
 }
 
 export function StatCard({ icon, value, label, detail, tone }: { icon: React.ReactNode; value: string; label: string; detail: string; tone: string }) {
   return (
-    <div className={cn("rounded-2xl p-6", tone)}>
-      <div className="grid h-14 w-14 place-items-center rounded-full bg-white/60">{icon}</div>
-      <p className="mt-7 text-4xl font-black leading-none text-black">{value}</p>
+    <div className={cn("rounded-2xl p-4 sm:p-5", tone)}>
+      <div className="grid h-12 w-12 place-items-center rounded-full bg-white/60 sm:h-14 sm:w-14">{icon}</div>
+      <p className="mt-5 text-3xl font-black leading-none text-black sm:text-[34px]">{value}</p>
       <p className="mt-2 text-base font-bold text-slate-900">{label}</p>
       <p className="mt-2 text-sm text-slate-600">{detail}</p>
     </div>
@@ -73,13 +99,17 @@ export function StatCard({ icon, value, label, detail, tone }: { icon: React.Rea
 }
 
 export function StatsGrid() {
+  const [progress, setProgress] = useState<VoiceFlexProgress>(defaultProgress);
+  useEffect(() => setProgress(getProgress()), []);
+  const milestone = nextMilestone(progress);
+
   return (
-    <Card className="p-4">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <StatCard icon={<Flame className="h-7 w-7 text-emerald-700" />} value="12" label="Day Streak" detail="Keep it going! 🔥" tone="bg-emerald-50" />
-        <StatCard icon={<Clock className="h-7 w-7 text-electric-700" />} value="245" label="Total Minutes" detail="Great progress!" tone="bg-blue-50" />
-        <StatCard icon={<BadgeCheck className="h-7 w-7 text-purple-700" />} value="18" label="Sessions Completed" detail="You're building momentum." tone="bg-purple-50" />
-        <StatCard icon={<Trophy className="h-7 w-7 text-amber-700" />} value="Day 14" label="Next Milestone" detail="Unlocks Range Expansion Module" tone="bg-amber-50" />
+    <Card className="p-3 sm:p-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        <StatCard icon={<Flame className="h-7 w-7 text-emerald-700" />} value={String(progress.dayStreak)} label="Day Streak" detail="Keep it going! 🔥" tone="bg-emerald-50" />
+        <StatCard icon={<Clock className="h-7 w-7 text-electric-700" />} value={String(progress.totalMinutes)} label="Total Minutes" detail="Great progress!" tone="bg-blue-50" />
+        <StatCard icon={<BadgeCheck className="h-7 w-7 text-purple-700" />} value={String(progress.sessionsCompleted)} label="Sessions Completed" detail="You're building momentum." tone="bg-purple-50" />
+        <StatCard icon={<Trophy className="h-7 w-7 text-amber-700" />} value={`Day ${milestone.day}`} label="Next Milestone" detail={milestone.label} tone="bg-amber-50" />
       </div>
     </Card>
   );
@@ -105,21 +135,21 @@ export function TodayPlan() {
       </CardHeader>
       <CardContent className="p-0">
         {todayExercises.map((exercise) => (
-          <div key={exercise.id} className="grid grid-cols-[32px_48px_1fr_auto] items-center gap-3 border-b border-slate-100 px-5 py-3 last:border-0">
+          <Link key={exercise.id} href="/session" className="grid min-h-[72px] grid-cols-[30px_44px_1fr] items-center gap-3 border-b border-slate-100 px-4 py-3 transition hover:bg-slate-50 sm:grid-cols-[32px_48px_1fr_auto] sm:px-5">
             <span className="grid h-7 w-7 place-items-center rounded-full bg-slate-100 text-sm font-bold text-slate-500">{exercise.order}</span>
-            <span className={cn("grid h-12 w-12 place-items-center rounded-xl", exerciseTone[exercise.type])}>
+            <span className={cn("grid h-11 w-11 place-items-center rounded-xl sm:h-12 sm:w-12", exerciseTone[exercise.type])}>
               {exercise.type === "Recovery" ? <Heart className="h-5 w-5" /> : <Waves className="h-5 w-5" />}
             </span>
-            <div>
+            <div className="min-w-0">
               <p className="font-bold">{exercise.title}</p>
               <p className="text-sm text-slate-500">{exercise.type} • {exercise.durationMinutes} min</p>
             </div>
-            <Button asChild variant="outline" size="sm">
-              <Link href="/session"><Play className="h-3.5 w-3.5 fill-current" />Start</Link>
+            <Button variant="outline" size="sm" className="hidden sm:inline-flex">
+              <Play className="h-3.5 w-3.5 fill-current" />Start
             </Button>
-          </div>
+          </Link>
         ))}
-        <Link href="/session" className="flex items-center gap-3 px-5 py-4 font-bold text-electric-700">View full plan <ArrowRight className="h-4 w-4" /></Link>
+        <Link href="/programs" className="flex items-center gap-3 px-5 py-4 font-bold text-electric-700">View full plan <ArrowRight className="h-4 w-4" /></Link>
       </CardContent>
     </Card>
   );
@@ -144,15 +174,15 @@ export function Roadmap({ wide = false }: { wide?: boolean }) {
         </div>
       </CardHeader>
       <CardContent>
-        <div className={cn("grid gap-3", wide ? "grid-cols-7" : "grid-cols-6")}>
+        <div className={cn("grid gap-4", wide ? "grid-cols-2 md:grid-cols-4 xl:grid-cols-7" : "grid-cols-2 md:grid-cols-3 xl:grid-cols-6")}>
           {(wide ? [...roadItems.slice(0, 5), { name: "Performance", desc: "Deliver your best voice anywhere.", icon: Star, status: "future" }, roadItems[5]] : roadItems).map((item, index, array) => {
             const Icon = item.icon;
             const current = item.status === "current";
             const complete = item.status === "done";
             return (
               <div key={item.name} className="relative text-center">
-                {index < array.length - 1 && <div className={cn("absolute left-1/2 right-[-50%] top-6 h-0.5 bg-slate-200", (complete || current) && "bg-electric-500")} />}
-                <div className={cn("relative z-10 mx-auto grid h-14 w-14 place-items-center rounded-full border-2 bg-white text-slate-400", complete && "border-emerald-300 bg-emerald-500 text-white", current && "h-16 w-16 border-electric-500 bg-electric-600 text-white shadow-lg shadow-blue-200")}>
+                {index < array.length - 1 && <div className={cn("absolute left-1/2 right-[-50%] top-6 hidden h-0.5 bg-slate-200 xl:block", (complete || current) && "bg-electric-500")} />}
+                <div className={cn("relative z-10 mx-auto grid h-12 w-12 place-items-center rounded-full border-2 bg-white text-slate-400 sm:h-14 sm:w-14", complete && "border-emerald-300 bg-emerald-500 text-white", current && "border-electric-500 bg-electric-600 text-white shadow-lg shadow-blue-200 sm:h-16 sm:w-16")}>
                   <Icon className="h-6 w-6" />
                 </div>
                 <p className={cn("mt-3 font-bold", current && "text-electric-700", complete && "text-emerald-700")}>{item.name}</p>
@@ -230,7 +260,7 @@ export function RecentWins() {
         </div>
         <Link href="/progress" className="text-sm font-bold text-electric-700">View all</Link>
       </CardHeader>
-      <CardContent className="flex items-center gap-5">
+      <CardContent className="flex flex-col gap-5 sm:flex-row sm:items-center">
         <div className="grid h-20 w-20 place-items-center rounded-full border-[7px] border-emerald-300 text-xl font-black text-emerald-700">+23%</div>
         <div className="flex-1">
           <p className="text-lg font-bold">Pitch Control</p>
