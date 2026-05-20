@@ -5,21 +5,10 @@ import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, EyeOff, Info, Lock, Mail, ShieldCheck, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AUTH_KEY, getAuth, setAuth } from "@/lib/storage";
+import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 type Mode = "login" | "create";
-
-function readStoredUser() {
-  try {
-    const raw = window.localStorage.getItem(AUTH_KEY);
-    if (!raw) return null;
-    const auth = JSON.parse(raw) as { user?: { name?: string; email?: string; plan?: string } };
-    return auth.user ?? null;
-  } catch {
-    return null;
-  }
-}
 
 function LoginForm() {
   const router = useRouter();
@@ -29,13 +18,20 @@ function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
   const next = params.get("next") || "/dashboard";
 
   useEffect(() => {
-    if (getAuth()) router.replace("/dashboard");
+    const checkSession = async () => {
+      const supabase = createClient();
+      const { data } = await supabase.auth.getSession();
+      if (data.session) router.replace("/dashboard");
+    };
+    checkSession();
   }, [router]);
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmedEmail = email.trim();
 
@@ -44,19 +40,49 @@ function LoginForm() {
       return;
     }
 
-    const storedUser = readStoredUser();
-    const userName = mode === "create" && name.trim() ? name.trim() : storedUser?.name || "Alex Morgan";
-    const auth = {
-      isLoggedIn: true,
-      user: {
-        name: userName,
-        email: trimmedEmail || storedUser?.email || "alex@example.com",
-        plan: storedUser?.plan || "Premium"
-      }
-    };
+    setError("");
+    setMessage("");
+    setLoading(true);
+    const supabase = createClient();
 
-    setAuth(auth);
-    router.replace(next.startsWith("/") ? next : "/dashboard");
+    try {
+      if (mode === "login") {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: trimmedEmail,
+          password
+        });
+        if (signInError) {
+          setError(signInError.message);
+          return;
+        }
+        router.replace(next.startsWith("/") ? next : "/dashboard");
+        return;
+      }
+
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: trimmedEmail,
+        password,
+        options: {
+          data: {
+            full_name: name.trim()
+          }
+        }
+      });
+
+      if (signUpError) {
+        setError(signUpError.message);
+        return;
+      }
+
+      if (data.session) {
+        router.replace("/dashboard");
+        return;
+      }
+
+      setMessage("Check your email to confirm your account.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -93,7 +119,7 @@ function LoginForm() {
 
         <div className="mt-12">
           <h1 className="text-[31px] font-black tracking-tight text-navy-950">{mode === "login" ? "Welcome back" : "Create your account"}</h1>
-          <p className="mt-2 text-xl text-slate-600">{mode === "login" ? "Log in to access your training hub" : "Create your Voice Flex training hub"}</p>
+              <p className="mt-2 text-xl text-slate-600">{mode === "login" ? "Log in to access your training hub" : "Create your Voice Flex training hub"}</p>
         </div>
 
         <form onSubmit={submit} className="mt-12 space-y-8">
@@ -156,8 +182,9 @@ function LoginForm() {
           </div>
 
           {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{error}</p>}
+          {message && <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</p>}
 
-          <Button type="submit" className="h-[72px] w-full rounded-xl bg-electric-600 text-2xl font-black shadow-lg shadow-blue-200 hover:bg-electric-700">
+          <Button disabled={loading} type="submit" className="h-[72px] w-full rounded-xl bg-electric-600 text-2xl font-black shadow-lg shadow-blue-200 hover:bg-electric-700">
             Continue to Dashboard <ArrowRight className="h-8 w-8" />
           </Button>
         </form>

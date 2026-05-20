@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Waves } from "lucide-react";
-import { getAuth } from "@/lib/storage";
+import { createClient } from "@/lib/supabase/client";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -11,12 +11,20 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const auth = getAuth();
-    if (!auth) {
-      router.replace(`/login?next=${encodeURIComponent(pathname)}`);
-      return;
-    }
-    setReady(true);
+    const checkAuth = async () => {
+      const supabase = createClient();
+      const {
+        data: { session }
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+        return;
+      }
+      setReady(true);
+    };
+
+    checkAuth();
   }, [pathname, router]);
 
   if (!ready) {

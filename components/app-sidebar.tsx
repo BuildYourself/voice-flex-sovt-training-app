@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { BookOpen, CalendarDays, LogOut, Dumbbell, Home, LineChart, Settings, Sparkles, SquareLibrary, Waves } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { getAuth, logout as clearAuth } from "@/lib/storage";
+import { createClient } from "@/lib/supabase/client";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: Home },
@@ -18,7 +18,7 @@ const nav = [
   { href: "/settings", label: "Settings", icon: Settings }
 ];
 
-interface AuthUser {
+interface SidebarUser {
   name: string;
   email: string;
   plan: string;
@@ -36,24 +36,36 @@ function getInitials(name: string) {
 export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState<AuthUser>({ name: "Alex Morgan", email: "alex@example.com", plan: "Premium" });
+  const [user, setUser] = useState<SidebarUser>({ name: "Voice Flex User", email: "user@example.com", plan: "Free" });
 
   useEffect(() => {
-    try {
-      const auth = getAuth();
-      if (!auth) return;
+    const loadUser = async () => {
+      const supabase = createClient();
+      const {
+        data: { user: authUser }
+      } = await supabase.auth.getUser();
+
+      if (!authUser) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, plan")
+        .eq("id", authUser.id)
+        .maybeSingle();
+
       setUser({
-        name: auth.user?.name || "Alex Morgan",
-        email: auth.user?.email || "alex@example.com",
-        plan: auth.user?.plan || "Premium"
+        name: profile?.full_name || authUser.email || "Voice Flex User",
+        email: authUser.email || "user@example.com",
+        plan: profile?.plan || "Free"
       });
-    } catch {
-      setUser({ name: "Alex Morgan", email: "alex@example.com", plan: "Premium" });
-    }
+    };
+
+    loadUser();
   }, []);
 
-  const logout = () => {
-    clearAuth();
+  const logout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
     router.replace("/login");
   };
 
