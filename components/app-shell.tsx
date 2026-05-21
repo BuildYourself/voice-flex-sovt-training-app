@@ -6,12 +6,24 @@ import Link from "next/link";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import type React from "react";
 
-export function AppShell({ title, subtitle, children, pill }: { title: string; subtitle: string; children: React.ReactNode; pill?: React.ReactNode }) {
+export function AppShell({
+  title,
+  subtitle,
+  children,
+  pill,
+  topStats
+}: {
+  title: string;
+  subtitle: string;
+  children: React.ReactNode;
+  pill?: React.ReactNode;
+  topStats?: { dayStreak: number; totalMinutes: number };
+}) {
   return (
     <AuthGuard>
       <div className="min-h-screen overflow-x-hidden">
         <AppSidebar />
-        <MobileHeader />
+        <MobileHeader topStats={topStats} />
         <main className="px-4 pb-28 pt-4 sm:px-6 lg:ml-[272px] lg:px-8 lg:py-8 xl:px-10">
           <div className="mx-auto w-full max-w-[1780px]">
           <header className="mb-7 flex flex-col gap-4 md:flex-row md:items-start md:justify-between lg:mb-9">
@@ -20,7 +32,7 @@ export function AppShell({ title, subtitle, children, pill }: { title: string; s
               <p className="mt-1.5 text-base text-slate-600 md:text-lg">{subtitle}</p>
             </div>
             <div className="hidden flex-col items-end gap-4 md:flex">
-              <TopStats />
+              <TopStats initial={topStats} />
               {pill}
             </div>
             {pill && <div className="md:hidden">{pill}</div>}
@@ -34,7 +46,7 @@ export function AppShell({ title, subtitle, children, pill }: { title: string; s
   );
 }
 
-function MobileHeader() {
+function MobileHeader({ topStats }: { topStats?: { dayStreak: number; totalMinutes: number } }) {
   return (
     <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/92 px-4 py-3 backdrop-blur lg:hidden">
       <div className="flex items-center justify-between">
@@ -42,7 +54,7 @@ function MobileHeader() {
           <span className="grid h-10 w-10 place-items-center rounded-2xl bg-navy-950 text-cyan-300"><Waves className="h-6 w-6" /></span>
           Voice Flex
         </Link>
-        <TopStats />
+        <TopStats initial={topStats} />
       </div>
     </header>
   );

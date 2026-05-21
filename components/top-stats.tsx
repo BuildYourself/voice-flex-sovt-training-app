@@ -4,12 +4,17 @@ import { useEffect, useState } from "react";
 import { Bell, Timer } from "lucide-react";
 import { defaultProgress, getProgress, type VoiceFlexProgress } from "@/lib/storage";
 
-export function TopStats() {
-  const [progress, setProgress] = useState<VoiceFlexProgress>(defaultProgress);
+export function TopStats({ initial }: { initial?: { dayStreak: number; totalMinutes: number } }) {
+  const [progress, setProgress] = useState<VoiceFlexProgress>({
+    ...defaultProgress,
+    dayStreak: initial?.dayStreak ?? defaultProgress.dayStreak,
+    totalMinutes: initial?.totalMinutes ?? defaultProgress.totalMinutes
+  });
 
   useEffect(() => {
+    if (initial) return;
     setProgress(getProgress());
-  }, []);
+  }, [initial]);
 
   return (
     <div className="flex items-center gap-3 text-slate-700 md:gap-6">

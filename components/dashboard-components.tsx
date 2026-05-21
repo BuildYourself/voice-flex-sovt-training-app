@@ -9,10 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SingerVisual } from "@/components/visuals";
 import { improvements, programs } from "@/lib/mock-data";
-import { DEFAULT_PROGRAM_DAY, getClientProgramPlan, resolveValidSelectedSlug, type DbExercise } from "@/lib/programs-client";
-import { defaultProgress, getProgress, nextMilestone, type VoiceFlexProgress } from "@/lib/storage";
+import type { DbExercise } from "@/lib/programs-client";
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 const fade = {
   initial: { opacity: 0, y: 12 },
@@ -20,7 +19,8 @@ const fade = {
   transition: { duration: 0.35 }
 };
 
-export function HeroCard() {
+export function HeroCard({ currentDay, durationDays }: { currentDay: number; durationDays: number }) {
+  const percent = Math.max(1, Math.min(100, Math.round((currentDay / Math.max(1, durationDays)) * 100)));
   return (
     <motion.section
       {...fade}
@@ -57,12 +57,12 @@ export function HeroCard() {
 
           <div className="w-full min-w-0 max-w-[390px]">
             <p className="text-sm font-semibold text-white/90">21-Day Transformation Program</p>
-            <p className="mt-2 text-[23px] font-extrabold leading-tight text-white">Day 12 of 21</p>
+            <p className="mt-2 text-[23px] font-extrabold leading-tight text-white">Day {currentDay} of {durationDays}</p>
             <div className="mt-4 flex items-center gap-6">
               <div className="h-3 w-full max-w-[310px] overflow-hidden rounded-full bg-white/20">
-                <div className="h-full w-[57%] rounded-full bg-[#5ce1e6]" />
+                <div className="h-full rounded-full bg-[#5ce1e6]" style={{ width: `${percent}%` }} />
               </div>
-              <span className="text-sm font-bold text-white">57%</span>
+              <span className="text-sm font-bold text-white">{percent}%</span>
             </div>
           </div>
         </div>
@@ -82,18 +82,15 @@ export function StatCard({ icon, value, label, detail, tone }: { icon: React.Rea
   );
 }
 
-export function StatsGrid() {
-  const [progress, setProgress] = useState<VoiceFlexProgress>(defaultProgress);
-  useEffect(() => setProgress(getProgress()), []);
-  const milestone = nextMilestone(progress);
+export function StatsGrid({ dayStreak, totalMinutes, sessionsCompleted, nextMilestoneDay, nextMilestoneLabel }: { dayStreak: number; totalMinutes: number; sessionsCompleted: number; nextMilestoneDay: number; nextMilestoneLabel: string }) {
 
   return (
     <Card className="p-3 sm:p-4">
       <div className="grid grid-cols-2 gap-3 sm:gap-4">
-        <StatCard icon={<Flame className="h-7 w-7 text-emerald-700" />} value={String(progress.dayStreak)} label="Day Streak" detail="Keep it going!" tone="bg-emerald-50" />
-        <StatCard icon={<Clock className="h-7 w-7 text-electric-700" />} value={String(progress.totalMinutes)} label="Total Minutes" detail="Great progress!" tone="bg-blue-50" />
-        <StatCard icon={<BadgeCheck className="h-7 w-7 text-purple-700" />} value={String(progress.sessionsCompleted)} label="Sessions Completed" detail="You're building momentum." tone="bg-purple-50" />
-        <StatCard icon={<Trophy className="h-7 w-7 text-amber-700" />} value={`Day ${milestone.day}`} label="Next Milestone" detail={milestone.label} tone="bg-amber-50" />
+        <StatCard icon={<Flame className="h-7 w-7 text-emerald-700" />} value={String(dayStreak)} label="Day Streak" detail="Keep it going!" tone="bg-emerald-50" />
+        <StatCard icon={<Clock className="h-7 w-7 text-electric-700" />} value={String(totalMinutes)} label="Total Minutes" detail="Great progress!" tone="bg-blue-50" />
+        <StatCard icon={<BadgeCheck className="h-7 w-7 text-purple-700" />} value={String(sessionsCompleted)} label="Sessions Completed" detail="You're building momentum." tone="bg-purple-50" />
+        <StatCard icon={<Trophy className="h-7 w-7 text-amber-700" />} value={`Day ${nextMilestoneDay}`} label="Next Milestone" detail={nextMilestoneLabel} tone="bg-amber-50" />
       </div>
     </Card>
   );
@@ -129,32 +126,7 @@ export function TodayPlan({
   initialEstimatedMinutes: number | null;
 }) {
   const [exercises, setExercises] = useState<DbExercise[]>(initialExercises);
-  const [loadMessage, setLoadMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    resolveValidSelectedSlug().then((selectedSlug) => {
-      return getClientProgramPlan(selectedSlug, DEFAULT_PROGRAM_DAY).then((result) => {
-        if (result.error) {
-          setLoadMessage(result.error);
-          return;
-        }
-        if (!result.program) {
-          setLoadMessage("No programs found.");
-          return;
-        }
-        if (!result.day) {
-          setLoadMessage("Program day not found.");
-          return;
-        }
-        if (!result.exercises.length) {
-          setLoadMessage("No exercises found for this day.");
-          return;
-        }
-        setLoadMessage(null);
-        setExercises(result.exercises);
-      });
-    });
-  }, []);
+  const [loadMessage] = useState<string | null>(null);
 
   const estimatedMinutes = initialEstimatedMinutes ?? exercises.reduce((sum, item) => sum + item.duration_seconds / 60, 0);
   const visibleExercises = exercises.slice(0, 5);

@@ -5,6 +5,7 @@ import { CalendarDays, Clock, Flag, MessageCircle, Mic, ShieldCheck, Trophy, Wav
 import { Button } from "@/components/ui/button";
 import type { DbProgram } from "@/lib/programs-client";
 import { setSelectedProgramSlugToStorage } from "@/lib/programs-client";
+import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 const iconMap = {
@@ -61,8 +62,26 @@ export function ProgramsGrid({ programs }: { programs: DbProgram[] }) {
             <Button
               variant={program.is_featured ? "default" : "outline"}
               className="mt-7 w-full"
-              onClick={() => {
+              onClick={async () => {
                 setSelectedProgramSlugToStorage(program.slug);
+                const supabase = createClient();
+                const {
+                  data: { user }
+                } = await supabase.auth.getUser();
+                if (user) {
+                  await supabase
+                    .from("user_progress")
+                    .upsert(
+                      {
+                        user_id: user.id,
+                        current_program_id: program.id,
+                        current_day: 1,
+                        updated_at: new Date().toISOString()
+                      },
+                      { onConflict: "user_id" }
+                    )
+                    .select("*");
+                }
                 router.push("/dashboard");
               }}
             >
