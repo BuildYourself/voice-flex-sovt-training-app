@@ -6,12 +6,14 @@ export interface ExerciseDefinition {
   requiresPianoDefault?: boolean;
   demoAudioUrl?: string | null;
   practiceAudioUrl?: string | null;
+  demoComingSoon?: boolean;
   tips: string[];
   mistakes: string[];
 }
 
 const arpeggioDemo = "/audio/session/arpeggio-demo.mp3";
 const arpeggioPiano = "/audio/session/arpeggio-piano.mp3";
+const fiveNotesDemo = "/audio/session/five-notes-demo.mp3";
 const fiveNotesPiano = "/audio/session/five-notes-piano.mp3";
 const sirenDemo = "/audio/session/siren-demo.mp3";
 const twoNotesDemo = "/audio/session/two-notes-demo.mp3";
@@ -27,6 +29,7 @@ export const exerciseLibrary: ExerciseDefinition[] = [
       "Place the yellow 10mm straw into the water. Seal your lips gently around the straw. Blow softly and create small, steady bubbles. Keep your shoulders, jaw, tongue, and throat relaxed.",
     requiresPianoDefault: false,
     demoAudioUrl: null,
+    demoComingSoon: true,
     tips: ["Light resistance", "Steady bubbles", "No throat pressure", "No pushing"],
     mistakes: ["Blowing too hard", "Making large splashing bubbles", "Tensing jaw or neck", "Running out of air too quickly"]
   },
@@ -38,6 +41,7 @@ export const exerciseLibrary: ExerciseDefinition[] = [
       "Keep the yellow 10mm straw in the water. Start with small, steady bubbles, then add a soft “mmm” sound through the straw. Keep everything gentle and relaxed.",
     requiresPianoDefault: false,
     demoAudioUrl: null,
+    demoComingSoon: true,
     tips: ["Gentle vibration", "Relaxed throat", "Stable bubbling", "Voice turns on without effort"],
     mistakes: ["Getting louder to hear yourself", "Forcing the sound", "Letting air escape through the lips", "Feeling scratchiness or discomfort"]
   },
@@ -69,7 +73,7 @@ export const exerciseLibrary: ExerciseDefinition[] = [
     instructions:
       "Sing five neighboring notes through the straw. Example: C-D-E-F-G, then G-F-E-D-C. Keep every note clean and even. Repeat from slightly different starting pitches.",
     requiresPianoDefault: true,
-    demoAudioUrl: null,
+    demoAudioUrl: fiveNotesDemo,
     practiceAudioUrl: fiveNotesPiano,
     tips: ["Precise but relaxed", "Even airflow", "Clean note changes", "No jaw or tongue tension"],
     mistakes: ["Rushing the notes", "Losing airflow between notes", "Over-controlling the throat", "Letting pitch wobble"]
@@ -106,6 +110,7 @@ export const exerciseLibrary: ExerciseDefinition[] = [
       "Remove the straw. Sing or speak a short phrase gently. Try to keep the same easy, balanced feeling. Notice whether your voice feels freer, clearer, or more stable.",
     requiresPianoDefault: false,
     demoAudioUrl: null,
+    demoComingSoon: true,
     tips: ["Voice feels easier", "Tone feels more connected", "Less air leakage", "Less effort"],
     mistakes: ["Immediately singing too loudly", "Forgetting the easy airflow feeling", "Trying to perform instead of observe"]
   }

@@ -1,29 +1,127 @@
 "use client";
 
 import { Shield } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useSessionPlayer } from "@/hooks/useSessionPlayer";
 import type { DbExercise } from "@/lib/programs-client";
+import { createClient } from "@/lib/supabase/client";
+import { getLocalDateString } from "@/lib/session/date-utils";
 import { resolveSessionSteps } from "@/lib/session/resolve-session";
+import { getTodaySessionProgress, upsertCompletedSessionStep, type UserSessionStepRow } from "@/lib/session/session-progress-db";
 import { SessionFlow } from "@/components/session/SessionFlow";
 import { HelperCards, SessionPlayer } from "@/components/session/SessionPlayer";
 import { SessionOverview } from "@/components/session/SessionOverview";
-import { useMemo } from "react";
+import { todayGuidedSessionTemplate } from "@/lib/session/session-data";
 
 export function ProSessionScreen({ initialExercises }: { initialExercises: DbExercise[] }) {
-  const router = useRouter();
+  const [progressLoading, setProgressLoading] = useState(true);
+  const [progressSyncError, setProgressSyncError] = useState<string | null>(null);
+  const [persistedRows, setPersistedRows] = useState<UserSessionStepRow[]>([]);
+  const [sessionUserId, setSessionUserId] = useState<string | null>(null);
+
+  const sessionDate = useMemo(() => getLocalDateString(), []);
+  const sessionId = todayGuidedSessionTemplate.id;
   const steps = useMemo(() => resolveSessionSteps(initialExercises), [initialExercises]);
+  const persistedCompletedDurations = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const row of persistedRows) {
+      const key = `${row.exercise_id}:${row.step_index}`;
+      map[key] = row.duration_sec;
+    }
+    return map;
+  }, [persistedRows]);
 
   const player = useSessionPlayer({
     steps,
-    onSessionComplete: () => {
-      router.push("/progress");
-    }
+    onSessionComplete: () => {},
+    onStepCompleted: async (step, stepIndex) => {
+      if (!sessionUserId) {
+        console.warn("[session] No authenticated user. Step completion synced locally only.");
+        return;
+      }
+
+      try {
+        const supabase = createClient();
+        await upsertCompletedSessionStep({
+          supabase,
+          userId: sessionUserId,
+          sessionId,
+          sessionDate,
+          exerciseId: step.exerciseId,
+          stepIndex,
+          durationSec: step.durationSec,
+          status: "completed"
+        });
+      } catch (error) {
+        console.error("[session] Failed to persist completed step to Supabase.", error);
+        setProgressSyncError("Progress sync issue. Your local progress is still active.");
+      }
+    },
+    persistedCompletedDurations
   });
+  const { hydrateProgress } = player;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadProgress = async () => {
+      setProgressLoading(true);
+      setProgressSyncError(null);
+      try {
+        const supabase = createClient();
+        const {
+          data: { user },
+          error: userError
+        } = await supabase.auth.getUser();
+
+        if (userError) {
+          throw userError;
+        }
+
+        if (!user) {
+          console.warn("[session] No authenticated user found. Session progress will remain local.");
+          if (!cancelled) {
+            setSessionUserId(null);
+          }
+          return;
+        }
+
+        if (!cancelled) {
+          setSessionUserId(user.id);
+        }
+
+        const rows = await getTodaySessionProgress({
+          supabase,
+          userId: user.id,
+          sessionId,
+          sessionDate
+        });
+
+        if (cancelled) return;
+        setPersistedRows(rows);
+        hydrateProgress(rows.map((row) => `${row.exercise_id}:${row.step_index}`));
+      } catch (error) {
+        console.error("[session] Failed to load persisted session progress.", error);
+        if (!cancelled) {
+          setProgressSyncError("Could not load synced progress. Continuing with local session state.");
+        }
+      } finally {
+        if (!cancelled) {
+          setProgressLoading(false);
+        }
+      }
+    };
+
+    void loadProgress();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrateProgress, sessionDate, sessionId]);
 
   const current = player.currentStep;
-  const stepProgress = current ? ((current.durationSec - player.remainingSeconds) / Math.max(1, current.durationSec)) * 100 : 0;
+  const stepProgress = current ? Math.min(1, Math.max(0, (current.durationSec - player.remainingSeconds) / Math.max(1, current.durationSec))) : 0;
 
   if (!steps.length || !current) {
     return (
@@ -33,8 +131,19 @@ export function ProSessionScreen({ initialExercises }: { initialExercises: DbExe
     );
   }
 
+  if (progressLoading) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center text-slate-600">Loading today&apos;s session progress...</CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-5">
+      {progressSyncError ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{progressSyncError}</div>
+      ) : null}
       <div className="grid gap-6 2xl:grid-cols-[330px_minmax(0,1fr)_390px]">
         <SessionFlow steps={steps} currentStepIndex={player.currentStepIndex} completedStepIds={player.completedStepIds} />
 

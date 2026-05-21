@@ -3,15 +3,16 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BookOpen, CalendarDays, LogOut, Dumbbell, Home, LineChart, Settings, Sparkles, SquareLibrary, Waves } from "lucide-react";
+import { BookOpen, CalendarDays, LogOut, Dumbbell, Home, LineChart, Settings, Sparkles, SquareLibrary, Waves, PlayCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: Home },
+  { href: "/session", label: "Sessions", icon: PlayCircle },
   { href: "/programs", label: "Programs", icon: SquareLibrary },
-  { href: "/library", label: "Exercises", icon: Dumbbell },
+  { href: "/exercises", label: "Exercises", icon: Dumbbell },
   { href: "/progress", label: "Progress", icon: LineChart },
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/library", label: "Library", icon: BookOpen },
@@ -81,7 +82,7 @@ export function AppSidebar() {
       <nav className="space-y-1.5">
         {nav.map((item) => {
           const Icon = item.icon;
-          const active = pathname === item.href || (pathname === "/session" && item.href === "/dashboard");
+          const active = pathname === item.href;
           return (
             <Link
               key={`${item.href}-${item.label}`}

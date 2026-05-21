@@ -13,6 +13,7 @@ export interface ResolvedSessionStep {
   instructions: string;
   requiresPiano: boolean;
   demoAudioUrl: string | null;
+  demoComingSoon: boolean;
   practiceAudioUrl: string | null;
   demoDurationLabel: string;
   whatToDoNow: string;
@@ -67,6 +68,7 @@ function resolveStep(exercise: ExerciseDefinition, step: SessionStepUsage, dbExe
     instructions,
     requiresPiano,
     demoAudioUrl,
+    demoComingSoon: Boolean(exercise.demoComingSoon && !demoAudioUrl),
     practiceAudioUrl,
     demoDurationLabel: "0:16",
     whatToDoNow: dbExercise?.what_to_do_now || "",
@@ -97,6 +99,7 @@ function templateToResolved(template: SessionTemplate): ResolvedSessionStep[] {
           instructions: "Follow the guided exercise instructions.",
           requiresPiano: step.requiresPianoOverride ?? false,
           demoAudioUrl: step.demoAudioUrlOverride ?? null,
+          demoComingSoon: false,
           practiceAudioUrl: step.practiceAudioUrlOverride ?? null,
           demoDurationLabel: "0:16",
           whatToDoNow: step.requiresPianoOverride ? "Listen to the demo first, then repeat with the piano accompaniment." : "Listen to the demo first, then start the timer and perform the exercise calmly.",
@@ -132,4 +135,3 @@ export function resolveSessionSteps(dbExercises: DbExercise[], template: Session
     return resolveStep(exercise, usage, dbExercise);
   });
 }
-

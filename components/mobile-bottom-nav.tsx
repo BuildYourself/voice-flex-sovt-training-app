@@ -21,7 +21,7 @@ export function MobileBottomNav() {
       <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
         {tabs.map((tab) => {
           const Icon = tab.icon;
-          const active = pathname === tab.href || (pathname === "/library" && tab.href === "/programs");
+          const active = pathname === tab.href;
           return (
             <Link
               key={tab.href}

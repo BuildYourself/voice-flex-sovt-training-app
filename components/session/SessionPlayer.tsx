@@ -71,6 +71,13 @@ export function SessionPlayer({
   const paused = mode === "paused";
   const canResume = paused;
   const demoUnavailable = !step.demoAudioUrl;
+  const demoMessage = step.demoComingSoon ? "Visual demo coming soon" : "Demo unavailable";
+  const ringSize = 282;
+  const ringStroke = 18;
+  const radius = (ringSize - ringStroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const clampedProgress = Math.min(1, Math.max(0, stepProgress));
+  const strokeOffset = circumference * (1 - clampedProgress);
 
   return (
     <Card className="overflow-hidden">
@@ -113,7 +120,7 @@ export function SessionPlayer({
                         {isDemoPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                         {isDemoPlaying ? "Stop Demo" : "Play Demo"}
                       </Button>
-                      <span className="text-sm font-semibold text-slate-500">{demoUnavailable ? "Demo unavailable" : "Demo"}</span>
+                      <span className="text-sm font-semibold text-slate-500">{demoUnavailable ? demoMessage : "Demo"}</span>
                     </div>
                   </div>
                 </div>
@@ -168,17 +175,20 @@ export function SessionPlayer({
 
           <div className="grid place-items-center">
             <div className="relative grid h-[238px] w-[238px] place-items-center rounded-full sm:h-[282px] sm:w-[282px]">
-              <div className="absolute inset-0 rounded-full border-[18px] border-blue-100" />
-              <div
-                className="absolute inset-0 rounded-full"
-                style={{
-                  background: `conic-gradient(#176bff ${stepProgress * 3.6}deg, transparent 0deg)`,
-                  transform: "rotate(-90deg)",
-                  transformOrigin: "50% 50%",
-                  WebkitMask: "radial-gradient(circle, transparent 58%, #000 59%)",
-                  mask: "radial-gradient(circle, transparent 58%, #000 59%)"
-                }}
-              />
+              <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox={`0 0 ${ringSize} ${ringSize}`} aria-hidden>
+                <circle cx={ringSize / 2} cy={ringSize / 2} r={radius} fill="none" stroke="#dbeafe" strokeWidth={ringStroke} />
+                <circle
+                  cx={ringSize / 2}
+                  cy={ringSize / 2}
+                  r={radius}
+                  fill="none"
+                  stroke="#176bff"
+                  strokeWidth={ringStroke}
+                  strokeLinecap="round"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={strokeOffset}
+                />
+              </svg>
               <div className="relative text-center">
                 <p className="text-5xl font-black text-black sm:text-6xl">{formatClock(remainingSeconds)}</p>
                 <p className="mt-3 text-slate-600">Remaining</p>
