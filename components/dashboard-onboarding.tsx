@@ -68,6 +68,26 @@ const onboardingHeaders: Record<number, { title: string; subtitle: string }> = {
   }
 };
 
+type IconTextItem = {
+  Icon: LucideIcon;
+  title: string;
+  text: string;
+};
+
+type MiniRoadmapItem = {
+  Icon: LucideIcon;
+  kicker?: string;
+  title: string;
+  text: string;
+};
+
+type JourneyItem = {
+  Icon: LucideIcon;
+  title: string;
+  label: string;
+  active?: boolean;
+};
+
 export function DashboardOnboarding() {
   const [currentSetupStep, setCurrentSetupStep] = useState(1);
   const isStepTwo = currentSetupStep === 2;
@@ -279,20 +299,20 @@ function StepFourContent({ onContinue }: { onContinue: () => void }) {
 }
 
 function StepFiveContent({ onBack, onContinue }: { onBack: () => void; onContinue: () => void }) {
-  const tips = [
-    [Waves, "Use relaxed breath", "Inhale gently through your nose and exhale through the device."],
-    [Volume2, "Keep it comfortable", "You should feel gentle resistance, not strain. Back off if it feels like too much."],
-    [Timer, "Short & consistent", "Start with just a few minutes. Consistency is more important than duration."],
-    [Droplet, "Stay hydrated", "Drink water before and after practice to keep your voice in top shape."],
-    [AlertTriangle, "Stop if it hurts", "Discomfort is your body's signal. Rest and try again later."]
-  ] as const;
+  const tips: IconTextItem[] = [
+    { Icon: Waves, title: "Use relaxed breath", text: "Inhale gently through your nose and exhale through the device." },
+    { Icon: Volume2, title: "Keep it comfortable", text: "You should feel gentle resistance, not strain. Back off if it feels like too much." },
+    { Icon: Timer, title: "Short & consistent", text: "Start with just a few minutes. Consistency is more important than duration." },
+    { Icon: Droplet, title: "Stay hydrated", text: "Drink water before and after practice to keep your voice in top shape." },
+    { Icon: AlertTriangle, title: "Stop if it hurts", text: "Discomfort is your body's signal. Rest and try again later." }
+  ];
   return (
     <div>
       <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50/45 via-white to-purple-50/35 p-6 sm:p-8">
         <div className="grid gap-8 xl:grid-cols-[minmax(0,.95fr)_1px_minmax(0,1.15fr)]">
           <div>
             <h3 className="max-w-[430px] text-2xl font-black leading-snug text-navy-950">Follow these tips for effective and safe practice</h3>
-            <div className="mt-7 space-y-6">{tips.map(([Icon, title, text]) => <div key={title} className="flex gap-5"><span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-purple-100 text-purple-600"><Icon className="h-7 w-7" /></span><div><h4 className="font-black text-navy-950">{title}</h4><p className="mt-1 max-w-[430px] text-base leading-6 text-slate-600">{text}</p></div></div>)}</div>
+            <div className="mt-7 space-y-6">{tips.map(({ Icon, title, text }) => <div key={title} className="flex gap-5"><span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-purple-100 text-purple-600"><Icon className="h-7 w-7" /></span><div><h4 className="font-black text-navy-950">{title}</h4><p className="mt-1 max-w-[430px] text-base leading-6 text-slate-600">{text}</p></div></div>)}</div>
           </div>
           <div className="hidden w-px bg-slate-200 xl:block" />
           <div>
@@ -381,11 +401,21 @@ function SimpleGoodSignsCard({ items }: { items: string[] }) {
 }
 
 function WhyVoiceFlexCard() {
-  return <Card><CardContent className="p-6"><div className="flex items-center gap-3"><ShieldCheck className="h-7 w-7 text-electric-600" /><h3 className="text-xl font-black text-navy-950">Why Voice Flex works</h3></div><div className="mt-5 space-y-4">{[[FlaskConical, "Science-backed", "Built on SOVT research to support healthy vocal function and reduce vocal strain."], [Sparkles, "Simple and effective", "Short, focused sessions that fit into your day and deliver real results."], [Trophy, "Progress you can feel", "Track your journey and build strength, endurance, and confidence over time."]].map(([Icon, title, text]) => <div key={String(title)} className="flex gap-4"><span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-blue-50 text-electric-700"><Icon className="h-7 w-7" /></span><div><h4 className="font-black text-navy-950">{title}</h4><p className="mt-1 text-sm leading-5 text-slate-600">{text}</p></div></div>)}</div></CardContent></Card>;
+  const whyVoiceFlexItems: IconTextItem[] = [
+    { Icon: FlaskConical, title: "Science-backed", text: "Built on SOVT research to support healthy vocal function and reduce vocal strain." },
+    { Icon: Sparkles, title: "Simple and effective", text: "Short, focused sessions that fit into your day and deliver real results." },
+    { Icon: Trophy, title: "Progress you can feel", text: "Track your journey and build strength, endurance, and confidence over time." }
+  ];
+  return <Card><CardContent className="p-6"><div className="flex items-center gap-3"><ShieldCheck className="h-7 w-7 text-electric-600" /><h3 className="text-xl font-black text-navy-950">Why Voice Flex works</h3></div><div className="mt-5 space-y-4">{whyVoiceFlexItems.map(({ Icon, title, text }) => <div key={title} className="flex gap-4"><span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-blue-50 text-electric-700"><Icon className="h-7 w-7" /></span><div><h4 className="font-black text-navy-950">{title}</h4><p className="mt-1 text-sm leading-5 text-slate-600">{text}</p></div></div>)}</div></CardContent></Card>;
 }
 
 function NeedCard() {
-  return <Card><CardContent className="p-6"><div className="flex items-center gap-3"><Sparkles className="h-7 w-7 text-electric-600" /><h3 className="text-xl font-black text-navy-950">What you&apos;ll need</h3></div><div className="mt-5 space-y-4">{[[Droplet, "Water", "Clean, room temperature water"], [Waves, "Voice Flex GO bottle", "Your SOVT training tool"], [Sparkles, "Yellow straw", "Pre-installed or provided"]].map(([Icon, title, text]) => <div key={String(title)} className="flex gap-4"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-blue-50 text-electric-600"><Icon className="h-6 w-6" /></span><div><h4 className="font-black text-navy-950">{title}</h4><p className="mt-1 text-sm leading-5 text-slate-600">{text}</p></div></div>)}</div></CardContent></Card>;
+  const needItems: IconTextItem[] = [
+    { Icon: Droplet, title: "Water", text: "Clean, room temperature water" },
+    { Icon: Waves, title: "Voice Flex GO bottle", text: "Your SOVT training tool" },
+    { Icon: Sparkles, title: "Yellow straw", text: "Pre-installed or provided" }
+  ];
+  return <Card><CardContent className="p-6"><div className="flex items-center gap-3"><Sparkles className="h-7 w-7 text-electric-600" /><h3 className="text-xl font-black text-navy-950">What you&apos;ll need</h3></div><div className="mt-5 space-y-4">{needItems.map(({ Icon, title, text }) => <div key={title} className="flex gap-4"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-blue-50 text-electric-600"><Icon className="h-6 w-6" /></span><div><h4 className="font-black text-navy-950">{title}</h4><p className="mt-1 text-sm leading-5 text-slate-600">{text}</p></div></div>)}</div></CardContent></Card>;
 }
 
 function BulletCard({ badge, title, items, muted }: { badge: string; title: string; items: string[]; muted?: boolean }) {
@@ -393,20 +423,20 @@ function BulletCard({ badge, title, items, muted }: { badge: string; title: stri
 }
 
 function WhatHappensNextCard() {
-  return <MiniRoadmap title="What happens next" items={[[Settings2, "Next up", "Adjust resistance", "Find your right level"], [ShieldCheck, "Then", "Practice safely", "Build good habits"], [CalendarCheck, "Finally", "Start Day 1", "Your first session"]]} />;
+  return <MiniRoadmap title="What happens next" items={[{ Icon: Settings2, kicker: "Next up", title: "Adjust resistance", text: "Find your right level" }, { Icon: ShieldCheck, kicker: "Then", title: "Practice safely", text: "Build good habits" }, { Icon: CalendarCheck, kicker: "Finally", title: "Start Day 1", text: "Your first session" }]} />;
 }
 
 function StepFourNextCard() {
-  return <MiniRoadmap title="What happens next" items={[[ShieldCheck, "", "Practice safely", "Build good habits"], [Waves, "", "Prepare for Day 1", "Get ready"], [CalendarCheck, "", "Start Day 1", "Your first session"]]} />;
+  return <MiniRoadmap title="What happens next" items={[{ Icon: ShieldCheck, title: "Practice safely", text: "Build good habits" }, { Icon: Waves, title: "Prepare for Day 1", text: "Get ready" }, { Icon: CalendarCheck, title: "Start Day 1", text: "Your first session" }]} />;
 }
 
-function MiniRoadmap({ title, items }: { title: string; items: any[] }) {
-  return <Card><CardContent className="p-6"><div className="flex items-center gap-3"><Flag className="h-7 w-7 text-purple-600" /><h3 className="text-xl font-black text-navy-950">{title}</h3></div><div className="mt-8 grid gap-5 sm:grid-cols-3">{items.map(([Icon, kicker, itemTitle, text], index) => <div key={itemTitle} className="relative flex flex-col items-center text-center">{index < items.length - 1 && <span className="absolute left-[62%] top-8 hidden w-[76%] border-t border-dashed border-slate-300 sm:block" />}<span className="relative z-10 grid h-16 w-16 place-items-center rounded-full bg-blue-50 text-electric-600"><Icon className="h-8 w-8" /></span>{kicker && <p className="mt-4 text-sm font-black text-electric-700">{kicker}</p>}<h4 className="mt-1 text-sm font-black text-navy-950">{itemTitle}</h4><p className="mt-1 text-sm text-slate-500">{text}</p></div>)}</div></CardContent></Card>;
+function MiniRoadmap({ title, items }: { title: string; items: MiniRoadmapItem[] }) {
+  return <Card><CardContent className="p-6"><div className="flex items-center gap-3"><Flag className="h-7 w-7 text-purple-600" /><h3 className="text-xl font-black text-navy-950">{title}</h3></div><div className="mt-8 grid gap-5 sm:grid-cols-3">{items.map(({ Icon, kicker, title: itemTitle, text }, index) => <div key={itemTitle} className="relative flex flex-col items-center text-center">{index < items.length - 1 && <span className="absolute left-[62%] top-8 hidden w-[76%] border-t border-dashed border-slate-300 sm:block" />}<span className="relative z-10 grid h-16 w-16 place-items-center rounded-full bg-blue-50 text-electric-600"><Icon className="h-8 w-8" /></span>{kicker && <p className="mt-4 text-sm font-black text-electric-700">{kicker}</p>}<h4 className="mt-1 text-sm font-black text-navy-950">{itemTitle}</h4><p className="mt-1 text-sm text-slate-500">{text}</p></div>)}</div></CardContent></Card>;
 }
 
 function JourneyCard() {
-  const items = [[Rocket, "Get started", "Day 1", true], [Leaf, "Build the basics", "Days 2-7"], [Waves, "Find your flow", "Days 8-14"], [ShieldCheck, "Build strength", "Days 15-21"], [Star, "Your best voice", "Ongoing"]] as const;
-  return <Card><CardContent className="p-6"><div className="flex items-center justify-between gap-4"><h3 className="text-xl font-black text-navy-950">Your journey</h3><Link href="/programs" className="text-sm font-black text-electric-700">View full plan -&gt;</Link></div><div className="mt-8 grid gap-5 sm:grid-cols-5">{items.map(([Icon, title, label, active], index) => <div key={title} className="relative flex flex-col items-center text-center">{index < items.length - 1 && <span className="absolute left-[58%] top-8 hidden w-[88%] border-t border-dashed border-slate-300 sm:block" />}<span className={cn("relative z-10 grid h-16 w-16 place-items-center rounded-full border text-2xl", active ? "border-electric-600 bg-electric-600 text-white" : "border-slate-200 bg-slate-50 text-slate-500")}><Icon className="h-8 w-8" /></span><h4 className={cn("mt-4 text-sm font-black", active ? "text-electric-700" : "text-navy-950")}>{title}</h4><p className="mt-2 text-sm text-slate-500">{label}</p></div>)}</div><div className="mt-8 rounded-xl bg-blue-50 px-5 py-4 text-sm text-slate-600"><Sparkles className="mr-2 inline h-5 w-5 text-electric-600" /><b>Tip:</b> Consistency is key. Even a few minutes a day can make a big difference.</div></CardContent></Card>;
+  const items: JourneyItem[] = [{ Icon: Rocket, title: "Get started", label: "Day 1", active: true }, { Icon: Leaf, title: "Build the basics", label: "Days 2-7" }, { Icon: Waves, title: "Find your flow", label: "Days 8-14" }, { Icon: ShieldCheck, title: "Build strength", label: "Days 15-21" }, { Icon: Star, title: "Your best voice", label: "Ongoing" }];
+  return <Card><CardContent className="p-6"><div className="flex items-center justify-between gap-4"><h3 className="text-xl font-black text-navy-950">Your journey</h3><Link href="/programs" className="text-sm font-black text-electric-700">View full plan -&gt;</Link></div><div className="mt-8 grid gap-5 sm:grid-cols-5">{items.map(({ Icon, title, label, active }, index) => <div key={title} className="relative flex flex-col items-center text-center">{index < items.length - 1 && <span className="absolute left-[58%] top-8 hidden w-[88%] border-t border-dashed border-slate-300 sm:block" />}<span className={cn("relative z-10 grid h-16 w-16 place-items-center rounded-full border text-2xl", active ? "border-electric-600 bg-electric-600 text-white" : "border-slate-200 bg-slate-50 text-slate-500")}><Icon className="h-8 w-8" /></span><h4 className={cn("mt-4 text-sm font-black", active ? "text-electric-700" : "text-navy-950")}>{title}</h4><p className="mt-2 text-sm text-slate-500">{label}</p></div>)}</div><div className="mt-8 rounded-xl bg-blue-50 px-5 py-4 text-sm text-slate-600"><Sparkles className="mr-2 inline h-5 w-5 text-electric-600" /><b>Tip:</b> Consistency is key. Even a few minutes a day can make a big difference.</div></CardContent></Card>;
 }
 
 function FeelCard({ title, items, good }: { title: string; items: string[]; good?: boolean }) {
