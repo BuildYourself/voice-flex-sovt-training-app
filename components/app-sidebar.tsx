@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BookOpen, CalendarDays, LogOut, Dumbbell, Home, LineChart, Settings, Sparkles, SquareLibrary, Waves, PlayCircle } from "lucide-react";
+import { LogOut, Dumbbell, Home, Settings, Sparkles, SquareLibrary, Waves, PlayCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
@@ -13,9 +13,6 @@ const nav = [
   { href: "/session", label: "Sessions", icon: PlayCircle },
   { href: "/programs", label: "Programs", icon: SquareLibrary },
   { href: "/exercises", label: "Exercises", icon: Dumbbell },
-  { href: "/progress", label: "Progress", icon: LineChart },
-  { href: "/calendar", label: "Calendar", icon: CalendarDays },
-  { href: "/library", label: "Library", icon: BookOpen },
   { href: "/settings", label: "Settings", icon: Settings }
 ];
 

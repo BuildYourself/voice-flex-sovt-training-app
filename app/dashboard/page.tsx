@@ -1,13 +1,27 @@
 import { AppShell } from "@/components/app-shell";
 import { CoachTipCard, HeroCard, ProgramsStrip, RecentWins, Roadmap, StatsGrid, TodayPlan } from "@/components/dashboard-components";
+import { DashboardOnboarding } from "@/components/dashboard-onboarding";
 import { getCurrentPlanForUser } from "@/lib/user-progress-db";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const { progress, program, day, exercises } = await getCurrentPlanForUser();
+  const isFirstLoginSetup = Number(progress.total_minutes || 0) === 0 && (progress.sessions_completed || 0) === 0;
   const nextMilestoneDay = Math.min((progress.current_day || 1) + 2, program?.duration_days || 21);
   const nextMilestoneLabel = `Continue ${program?.title ?? "training"} progression`;
+
+  if (isFirstLoginSetup) {
+    return (
+      <AppShell
+        title="Let's set up your Voice Flex GO"
+        subtitle="We'll walk you through everything you need to know so you can use Voice Flex correctly and confidently before starting Day 1."
+        topStats={{ dayStreak: progress.day_streak || 0, totalMinutes: Number(progress.total_minutes || 0) }}
+      >
+        <DashboardOnboarding />
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell

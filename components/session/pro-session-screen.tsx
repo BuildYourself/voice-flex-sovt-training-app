@@ -144,7 +144,7 @@ export function ProSessionScreen({ initialExercises }: { initialExercises: DbExe
       {progressSyncError ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{progressSyncError}</div>
       ) : null}
-      <div className="grid gap-6 2xl:grid-cols-[330px_minmax(0,1fr)_390px]">
+      <div className="grid gap-6 2xl:grid-cols-[300px_minmax(0,1fr)_320px]">
         <SessionFlow steps={steps} currentStepIndex={player.currentStepIndex} completedStepIds={player.completedStepIds} />
 
         <div className="order-1 space-y-5 2xl:order-2">

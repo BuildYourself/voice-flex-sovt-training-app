@@ -7,8 +7,16 @@ export interface ExerciseDefinition {
   demoAudioUrl?: string | null;
   practiceAudioUrl?: string | null;
   demoComingSoon?: boolean;
+  visualDemoSteps?: VisualDemoStep[];
   tips: string[];
   mistakes: string[];
+}
+
+export interface VisualDemoStep {
+  title: string;
+  subtitle: string;
+  imageUrl: string;
+  bullets: string[];
 }
 
 const arpeggioDemo = "/audio/session/arpeggio-demo.mp3";
@@ -30,6 +38,26 @@ export const exerciseLibrary: ExerciseDefinition[] = [
     requiresPianoDefault: false,
     demoAudioUrl: null,
     demoComingSoon: true,
+    visualDemoSteps: [
+      {
+        title: "Step 1",
+        subtitle: "Set up",
+        imageUrl: "/images/session/easy-bubbles-step-1.png",
+        bullets: ["Fill cup halfway", "Place straw 1-2 cm below the water", "Sit tall, relax shoulders"]
+      },
+      {
+        title: "Step 2",
+        subtitle: "Start easy",
+        imageUrl: "/images/session/easy-bubbles-step-2.png",
+        bullets: ["Blow gently", "Bubbles should be small and steady", "If water splashes, reduce pressure"]
+      },
+      {
+        title: "Step 3",
+        subtitle: "Keep it easy",
+        imageUrl: "/images/session/easy-bubbles-step-3.png",
+        bullets: ["Blow gently", "Keep bubbles small and steady", "No pushing"]
+      }
+    ],
     tips: ["Light resistance", "Steady bubbles", "No throat pressure", "No pushing"],
     mistakes: ["Blowing too hard", "Making large splashing bubbles", "Tensing jaw or neck", "Running out of air too quickly"]
   },
@@ -42,6 +70,26 @@ export const exerciseLibrary: ExerciseDefinition[] = [
     requiresPianoDefault: false,
     demoAudioUrl: null,
     demoComingSoon: true,
+    visualDemoSteps: [
+      {
+        title: "Step 1",
+        subtitle: "Set up",
+        imageUrl: "/images/session/easy-bubbles-step-1.png",
+        bullets: ["Fill cup halfway", "Place straw 1-2 cm below the water", "Sit tall, relax shoulders"]
+      },
+      {
+        title: "Step 2",
+        subtitle: "Start easy",
+        imageUrl: "/images/session/easy-bubbles-step-2.png",
+        bullets: ["Blow gently", "Bubbles should be small and steady", "If water splashes, reduce pressure"]
+      },
+      {
+        title: "Step 3",
+        subtitle: "Add voice",
+        imageUrl: "/images/session/soft-mmm-step-3.png",
+        bullets: ["Hum gently through the straw", "Keep it easy", "No pushing"]
+      }
+    ],
     tips: ["Gentle vibration", "Relaxed throat", "Stable bubbling", "Voice turns on without effort"],
     mistakes: ["Getting louder to hear yourself", "Forcing the sound", "Letting air escape through the lips", "Feeling scratchiness or discomfort"]
   },

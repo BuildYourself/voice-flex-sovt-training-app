@@ -1,5 +1,5 @@
 import type { DbExercise } from "@/lib/programs-client";
-import { exerciseLibrary, type ExerciseDefinition } from "@/lib/session/exercise-library";
+import { exerciseLibrary, type ExerciseDefinition, type VisualDemoStep } from "@/lib/session/exercise-library";
 import { todayGuidedSessionTemplate, type SessionStepUsage, type SessionTemplate } from "@/lib/session/session-data";
 
 export interface ResolvedSessionStep {
@@ -14,6 +14,7 @@ export interface ResolvedSessionStep {
   requiresPiano: boolean;
   demoAudioUrl: string | null;
   demoComingSoon: boolean;
+  visualDemoSteps: VisualDemoStep[];
   practiceAudioUrl: string | null;
   demoDurationLabel: string;
   whatToDoNow: string;
@@ -69,6 +70,7 @@ function resolveStep(exercise: ExerciseDefinition, step: SessionStepUsage, dbExe
     requiresPiano,
     demoAudioUrl,
     demoComingSoon: Boolean(exercise.demoComingSoon && !demoAudioUrl),
+    visualDemoSteps: exercise.visualDemoSteps ?? [],
     practiceAudioUrl,
     demoDurationLabel: "0:16",
     whatToDoNow: dbExercise?.what_to_do_now || "",
@@ -100,6 +102,7 @@ function templateToResolved(template: SessionTemplate): ResolvedSessionStep[] {
           requiresPiano: step.requiresPianoOverride ?? false,
           demoAudioUrl: step.demoAudioUrlOverride ?? null,
           demoComingSoon: false,
+          visualDemoSteps: [],
           practiceAudioUrl: step.practiceAudioUrlOverride ?? null,
           demoDurationLabel: "0:16",
           whatToDoNow: step.requiresPianoOverride ? "Listen to the demo first, then repeat with the piano accompaniment." : "Listen to the demo first, then start the timer and perform the exercise calmly.",

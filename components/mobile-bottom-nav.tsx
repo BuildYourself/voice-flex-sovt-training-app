@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, LineChart, PlayCircle, Settings, SquareLibrary } from "lucide-react";
+import { Home, PlayCircle, Settings, SquareLibrary } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const tabs = [
   { href: "/dashboard", label: "Home", icon: Home },
   { href: "/programs", label: "Programs", icon: SquareLibrary },
   { href: "/session", label: "Session", icon: PlayCircle },
-  { href: "/progress", label: "Progress", icon: LineChart },
   { href: "/settings", label: "Settings", icon: Settings }
 ];
 
@@ -18,7 +17,7 @@ export function MobileBottomNav() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-2 pb-[calc(env(safe-area-inset-bottom)+8px)] pt-2 shadow-[0_-12px_35px_rgba(15,23,42,.08)] backdrop-blur lg:hidden">
-      <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
+      <div className="mx-auto grid max-w-md grid-cols-4 gap-1">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const active = pathname === tab.href;
