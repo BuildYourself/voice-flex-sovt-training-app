@@ -20,7 +20,9 @@ export default async function SessionPage() {
         </div>
       }
     >
-      <ProSessionScreen initialExercises={exercises} />
+      <div className="mx-auto max-w-[1540px]">
+        <ProSessionScreen initialExercises={exercises} />
+      </div>
     </AppShell>
   );
 }

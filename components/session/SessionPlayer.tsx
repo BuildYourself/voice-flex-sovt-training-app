@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Check, CheckCircle2, Headphones, Pause, Piano, Play, SkipBack, SkipForward, Target, Waves } from "lucide-react";
+import { AlertTriangle, Check, CheckCircle2, Eye, Headphones, Pause, Piano, Play, SkipBack, SkipForward, Target, Waves } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { SessionMode } from "@/hooks/useSessionPlayer";
@@ -32,6 +32,95 @@ function modeLabel(mode: SessionMode) {
     default:
       return "Ready";
   }
+}
+
+function AudioDemoSection({
+  step,
+  mode,
+  playDemo,
+  stopDemo,
+  isDemoPlaying
+}: {
+  step: ResolvedSessionStep;
+  mode: SessionMode;
+  playDemo: () => void;
+  stopDemo: () => void;
+  isDemoPlaying: boolean;
+}) {
+  const demoUnavailable = !step.demoAudioUrl;
+  const demoMessage = step.demoComingSoon ? "Visual demo coming soon" : "Demo unavailable";
+
+  return (
+    <div className="rounded-2xl border border-blue-200 bg-blue-50/45 p-5">
+      <div className="flex items-start gap-4">
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-blue-100 text-electric-600">
+          <Headphones className="h-6 w-6" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-3xl font-black text-navy-950 sm:text-[35px]">1. Listen to Demo</p>
+          <p className="mt-1 text-slate-600">Hear how the exercise should sound before you begin.</p>
+          <div className="mt-4 flex flex-wrap items-center gap-4">
+            <Button
+              variant="outline"
+              disabled={demoUnavailable || mode === "practice"}
+              className="min-w-[138px] border-electric-300 text-electric-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={isDemoPlaying ? stopDemo : playDemo}
+            >
+              {isDemoPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+              {isDemoPlaying ? "Stop Demo" : "Play Demo"}
+            </Button>
+            <span className="text-sm font-semibold text-slate-500">{demoUnavailable ? demoMessage : "Demo"}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function VisualStepsDemoSection({ step }: { step: ResolvedSessionStep }) {
+  return (
+    <div className="rounded-2xl border border-blue-200 bg-blue-50/45 p-5">
+      <div className="flex items-start gap-4">
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-blue-100 text-electric-600">
+          <Eye className="h-6 w-6" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-3xl font-black text-navy-950 sm:text-[35px]">1. Watch Demo</p>
+          <p className="mt-1 text-slate-600">See how to set up and perform the exercise before you begin.</p>
+          <div className="mt-5 grid gap-4 md:grid-cols-3">
+            {step.visualSteps.map((visualStep, index) => (
+              <article key={visualStep.id} className="min-w-0 overflow-hidden rounded-2xl border border-blue-200 bg-white/95 p-4 shadow-sm">
+                <div className="text-center">
+                  <p className="text-lg font-black leading-tight text-navy-950">{visualStep.title.split(" - ")[0]}</p>
+                  <p className="text-base font-black leading-tight text-navy-950">{visualStep.title.split(" - ")[1] ?? visualStep.title}</p>
+                </div>
+                <div className="relative mt-4 flex h-40 items-center justify-center overflow-hidden rounded-xl bg-slate-100 sm:h-44">
+                  <span className="absolute left-3 top-3 z-10 grid h-8 w-8 place-items-center rounded-full bg-electric-600 text-lg font-black text-white">
+                    {index + 1}
+                  </span>
+                  <img src={visualStep.image} alt={visualStep.title} className="h-full w-full object-contain" />
+                </div>
+                <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50/50 px-4 py-3">
+                  {visualStep.points?.length ? (
+                    <ul className="space-y-2">
+                      {visualStep.points.map((point) => (
+                        <li key={`${visualStep.id}-${point}`} className="flex items-start gap-2 text-xs leading-snug text-navy-950">
+                          <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-electric-600" />
+                          <span>{point}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-xs leading-snug text-navy-950">{visualStep.text}</p>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function SessionPlayer({
@@ -70,10 +159,9 @@ export function SessionPlayer({
   const practicing = mode === "practice";
   const paused = mode === "paused";
   const canResume = paused;
-  const demoUnavailable = !step.demoAudioUrl;
-  const demoMessage = step.demoComingSoon ? "Visual demo coming soon" : "Demo unavailable";
-  const ringSize = 282;
-  const ringStroke = 18;
+  const showBubbleGuideDemo = step.demoMode === "bubble-guide" && step.visualSteps.length > 0;
+  const ringSize = 210;
+  const ringStroke = 14;
   const radius = (ringSize - ringStroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const clampedProgress = Math.min(1, Math.max(0, stepProgress));
@@ -92,89 +180,18 @@ export function SessionPlayer({
           </div>
         </div>
 
-        <div className="mt-7 grid gap-8 xl:grid-cols-[minmax(0,1fr)_280px]">
-          <div>
+        <div className="mt-7 grid gap-8 xl:grid-cols-[minmax(0,1fr)_210px]">
+          <div className="min-w-0">
             <h2 className="text-4xl font-black tracking-tight text-black sm:text-5xl">{step.title}</h2>
             <p className="mt-5 flex items-center gap-3 text-base text-slate-700 sm:text-lg">
               <span className="h-3 w-3 rounded-full bg-amber-400" />
               <span>Tool: {step.tool}</span>
             </p>
             <p className="mt-5 max-w-[640px] text-base leading-7 text-slate-800 sm:text-lg sm:leading-8">{step.instructions}</p>
-
-            <div className="mt-7 space-y-4">
-              <div className="rounded-2xl border border-blue-200 bg-blue-50/45 p-5">
-                <div className="flex items-start gap-4">
-                  <span className="grid h-12 w-12 place-items-center rounded-full bg-blue-100 text-electric-600">
-                    <Headphones className="h-6 w-6" />
-                  </span>
-                  <div className="flex-1">
-                    <p className="text-[35px] font-black text-navy-950">1. Listen to Demo</p>
-                    <p className="mt-1 text-slate-600">Hear how the exercise should sound before you begin.</p>
-                    <div className="mt-4 flex items-center gap-4">
-                      <Button
-                        variant="outline"
-                        disabled={demoUnavailable || mode === "practice"}
-                        className="min-w-[138px] border-electric-300 text-electric-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
-                        onClick={isDemoPlaying ? stopDemo : playDemo}
-                      >
-                        {isDemoPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                        {isDemoPlaying ? "Stop Demo" : "Play Demo"}
-                      </Button>
-                      <span className="text-sm font-semibold text-slate-500">{demoUnavailable ? demoMessage : "Demo"}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-blue-200 bg-blue-50/40 p-5">
-                <div className="flex items-start gap-4">
-                  <span className="grid h-12 w-12 place-items-center rounded-full bg-blue-100 text-electric-600">
-                    {step.requiresPiano ? <Piano className="h-6 w-6" /> : <Target className="h-6 w-6" />}
-                  </span>
-                  <div className="flex-1">
-                    <p className="text-[35px] font-black text-navy-950">{step.requiresPiano ? "2. Practice with Piano" : "2. Start Exercise"}</p>
-                    <p className="mt-1 text-slate-600">{step.requiresPiano ? "Start the accompaniment and sing along for the full step." : "Start the timer and follow the exercise instructions."}</p>
-                    <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(190px,220px)_minmax(130px,155px)_minmax(130px,155px)]">
-                      <Button className="h-11 bg-electric-600 text-white hover:bg-electric-700" onClick={canResume ? resumePractice : practicing ? pausePractice : startPractice}>
-                        {practicing ? (
-                          <>
-                            <Pause className="h-4 w-4" />
-                            Pause
-                          </>
-                        ) : canResume ? (
-                          <>
-                            <Play className="h-4 w-4" />
-                            Resume
-                          </>
-                        ) : (
-                          <>
-                            <Play className="h-4 w-4" />
-                            {step.requiresPiano ? "Start Practice" : "Start Exercise"}
-                          </>
-                        )}
-                      </Button>
-                      <Button variant="outline" className="h-11" onClick={previousStep}>
-                        <SkipBack className="h-4 w-4" />
-                        Previous
-                      </Button>
-                      <Button variant="outline" className="h-11" onClick={skipStep}>
-                        Skip Step
-                        <SkipForward className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    {step.requiresPiano && (
-                      <p className="mt-3 text-xs text-slate-500">
-                        Accompaniment: {isPracticeAudioPlaying ? "Playing" : "Stopped"}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
 
-          <div className="grid place-items-center">
-            <div className="relative grid h-[238px] w-[238px] place-items-center rounded-full sm:h-[282px] sm:w-[282px]">
+          <div className="grid place-items-center xl:place-items-end">
+            <div className="relative grid h-[180px] w-[180px] place-items-center rounded-full sm:h-[200px] sm:w-[200px]">
               <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox={`0 0 ${ringSize} ${ringSize}`} aria-hidden>
                 <circle cx={ringSize / 2} cy={ringSize / 2} r={radius} fill="none" stroke="#dbeafe" strokeWidth={ringStroke} />
                 <circle
@@ -190,13 +207,70 @@ export function SessionPlayer({
                 />
               </svg>
               <div className="relative text-center">
-                <p className="text-5xl font-black text-black sm:text-6xl">{formatClock(remainingSeconds)}</p>
-                <p className="mt-3 text-slate-600">Remaining</p>
+                <p className="text-4xl font-black text-black sm:text-5xl">{formatClock(remainingSeconds)}</p>
+                <p className="mt-2 text-sm text-slate-600">Remaining</p>
               </div>
             </div>
-            <div className="mt-6 inline-flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700">
-              <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-              Mode: {modeLabel(mode)}
+          </div>
+        </div>
+
+        <div className="mt-7 space-y-4">
+          {showBubbleGuideDemo ? (
+            <VisualStepsDemoSection step={step} />
+          ) : (
+            <AudioDemoSection step={step} mode={mode} playDemo={playDemo} stopDemo={stopDemo} isDemoPlaying={isDemoPlaying} />
+          )}
+
+          <div className="rounded-2xl border border-blue-200 bg-blue-50/40 p-5">
+            <div className="flex items-start gap-4">
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-blue-100 text-electric-600">
+                {step.requiresPiano ? <Piano className="h-6 w-6" /> : <Target className="h-6 w-6" />}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-3xl font-black text-navy-950 sm:text-[35px]">{step.requiresPiano ? "2. Practice with Piano" : "2. Start Exercise"}</p>
+                    <p className="mt-1 text-slate-600">{step.requiresPiano ? "Start the accompaniment and sing along for the full step." : "Start the timer and follow the exercise instructions."}</p>
+                  </div>
+                  <div className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700">
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                    Mode: {modeLabel(mode)}
+                  </div>
+                </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(190px,220px)_minmax(130px,155px)_minmax(130px,155px)]">
+                  <Button className="h-11 bg-electric-600 text-white hover:bg-electric-700" onClick={canResume ? resumePractice : practicing ? pausePractice : startPractice}>
+                    {practicing ? (
+                      <>
+                        <Pause className="h-4 w-4" />
+                        Pause
+                      </>
+                    ) : canResume ? (
+                      <>
+                        <Play className="h-4 w-4" />
+                        Resume
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-4 w-4" />
+                        {step.requiresPiano ? "Start Practice" : "Start Exercise"}
+                      </>
+                    )}
+                  </Button>
+                  <Button variant="outline" className="h-11" onClick={previousStep}>
+                    <SkipBack className="h-4 w-4" />
+                    Previous
+                  </Button>
+                  <Button variant="outline" className="h-11" onClick={skipStep}>
+                    Skip Step
+                    <SkipForward className="h-4 w-4" />
+                  </Button>
+                </div>
+                {step.requiresPiano && (
+                  <p className="mt-3 text-xs text-slate-500">
+                    Accompaniment: {isPracticeAudioPlaying ? "Playing" : "Stopped"}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>

@@ -52,7 +52,7 @@ export function SessionOverview({
   const upcoming = steps.slice(currentStepIndex + 1);
 
   return (
-    <div className="order-3 space-y-5 2xl:order-3">
+    <div className="order-3 min-w-0 space-y-5">
       <Card>
         <CardContent className="p-6 sm:p-8">
           <div className="flex items-center gap-4">
@@ -118,4 +118,3 @@ export function SessionOverview({
     </div>
   );
 }
-
