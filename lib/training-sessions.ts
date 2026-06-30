@@ -164,20 +164,21 @@ export const trainingSessionConfigs: Record<VoiceFlexProduct, TrainingSessionCon
     day: 1,
     exercises: [
       {
-        id: "resistance-check",
-        title: "Resistance Check",
+        id: "go-waves",
+        title: "Waves",
         durationSeconds: 60,
         tool: "Voice Flex GO",
+        demoAudioSrc: "/audio/session/waves-demo.mp3",
         description:
-          "Start on a low setting. Blow gently through the device and adjust until the resistance feels easy, steady, and controlled.",
-        whatToDoNow: "Find a setting that feels easy and steady before you begin the vocal drills.",
-        tips: ["Easy airflow", "Stable resistance", "Relaxed jaw", "No throat pressure"],
-        avoid: ["Starting too hard", "Clamping your jaw", "Pushing air", "Raising your shoulders"]
+          "Begin with gentle wave-like airflow through Voice Flex GO. Keep the sound easy, relaxed, and steady.",
+        whatToDoNow: "Start with easy airflow and let the sound move gently like a wave.",
+        tips: ["Easy airflow", "Gentle movement", "Relaxed jaw", "No throat pressure"],
+        avoid: ["Pushing air", "Clamping your jaw", "Raising your shoulders", "Forcing the sound"]
       },
       {
         id: "go-siren",
         title: "Siren",
-        durationSeconds: 120,
+        durationSeconds: 90,
         tool: "Voice Flex GO",
         demoAudioSrc: "/audio/session/siren-demo.mp3",
         description: "Glide gently from low to high and back down. Keep the device resistance comfortable and your airflow steady.",
@@ -186,22 +187,27 @@ export const trainingSessionConfigs: Record<VoiceFlexProduct, TrainingSessionCon
         avoid: ["Jumping too fast", "Forcing high notes", "Over-tightening", "Pushing extra air"]
       },
       {
-        id: "go-five-notes",
-        title: "5 Notes",
-        durationSeconds: 120,
+        id: "go-two-notes",
+        title: "2 Notes",
+        durationSeconds: 90,
         tool: "Voice Flex GO",
         requiresPiano: true,
-        demoAudioSrc: "/audio/session/five-notes-demo.mp3",
-        accompanimentAudioSrc: "/audio/session/five-notes-piano.mp3",
-        description: "Move through five neighboring notes while keeping the resistance light and even.",
-        whatToDoNow: "Move through five notes slowly and evenly.",
-        tips: ["Precise but relaxed", "Even airflow", "Clean note changes", "Steady resistance"],
-        avoid: ["Rushing the notes", "Losing airflow", "Over-controlling", "Letting pitch wobble"]
+        demoAudioSrc: "/audio/session/two-notes-demo.mp3",
+        accompanimentAudioSrc: "/audio/session/two-notes-piano.mp3",
+        description: "Move between one lower note and one clearly higher note while keeping airflow steady and relaxed.",
+        whatToDoNow: "Move between two notes with clean, steady airflow.",
+        tips: ["Clear contrast between notes", "Easy jump", "No throat grab", "Air stays steady"],
+        avoid: [
+          "Attacking the higher note too hard",
+          "Letting the low note collapse",
+          "Pushing air to reach the high note",
+          "Feeling scratchiness"
+        ]
       },
       {
         id: "go-arpeggio",
         title: "Arpeggio",
-        durationSeconds: 120,
+        durationSeconds: 90,
         tool: "Voice Flex GO",
         requiresPiano: true,
         demoAudioSrc: "/audio/session/arpeggio-demo.mp3",
@@ -212,9 +218,22 @@ export const trainingSessionConfigs: Record<VoiceFlexProduct, TrainingSessionCon
         avoid: ["Getting louder as notes rise", "Holding tension", "Running out of air early", "Pushing instead of gliding"]
       },
       {
+        id: "go-five-notes",
+        title: "5 Notes",
+        durationSeconds: 90,
+        tool: "Voice Flex GO",
+        requiresPiano: true,
+        demoAudioSrc: "/audio/session/five-notes-demo.mp3",
+        accompanimentAudioSrc: "/audio/session/five-notes-piano.mp3",
+        description: "Move through five neighboring notes while keeping the resistance light and even.",
+        whatToDoNow: "Move through five notes slowly and evenly.",
+        tips: ["Precise but relaxed", "Even airflow", "Clean note changes", "Steady resistance"],
+        avoid: ["Rushing the notes", "Losing airflow", "Over-controlling", "Letting pitch wobble"]
+      },
+      {
         id: "go-voice-check",
         title: "Voice Check",
-        durationSeconds: 60,
+        durationSeconds: 30,
         tool: "No Device",
         description: "Speak or sing a short phrase gently and notice whether your voice feels easier and more stable.",
         whatToDoNow: "Compare your voice after the Voice Flex GO work.",
