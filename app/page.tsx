@@ -1,14 +1,5 @@
-import { FeatureStatsGrid, FinalCTA, HomeHero, HomeNavbar, HowItWorks, ProductCards } from "@/components/homepage-components";
+import { OrderAccessPage } from "@/components/order-access-page";
 
 export default function Home() {
-  return (
-    <main className="min-h-screen bg-[#f7faff]">
-      <HomeNavbar />
-      <HomeHero />
-      <FeatureStatsGrid />
-      <HowItWorks />
-      <ProductCards />
-      <FinalCTA />
-    </main>
-  );
+  return <OrderAccessPage />;
 }
