@@ -1,22 +1,26 @@
+export type DemoMode = "bubble-guide" | "audio-demo";
+
+export interface VisualDemoStep {
+  id: string;
+  title: string;
+  text: string;
+  image: string;
+  points?: string[];
+}
+
 export interface ExerciseDefinition {
   id: string;
   title: string;
   defaultTool: string;
   instructions: string;
   requiresPianoDefault?: boolean;
+  demoMode?: DemoMode;
   demoAudioUrl?: string | null;
   practiceAudioUrl?: string | null;
   demoComingSoon?: boolean;
-  visualDemoSteps?: VisualDemoStep[];
+  visualSteps?: VisualDemoStep[];
   tips: string[];
   mistakes: string[];
-}
-
-export interface VisualDemoStep {
-  title: string;
-  subtitle: string;
-  imageUrl: string;
-  bullets: string[];
 }
 
 const arpeggioDemo = "/audio/session/arpeggio-demo.mp3";
@@ -36,26 +40,29 @@ export const exerciseLibrary: ExerciseDefinition[] = [
     instructions:
       "Place the yellow 10mm straw into the water. Seal your lips gently around the straw. Blow softly and create small, steady bubbles. Keep your shoulders, jaw, tongue, and throat relaxed.",
     requiresPianoDefault: false,
+    demoMode: "bubble-guide",
     demoAudioUrl: null,
-    demoComingSoon: true,
-    visualDemoSteps: [
+    visualSteps: [
       {
-        title: "Step 1",
-        subtitle: "Set up",
-        imageUrl: "/images/session/easy-bubbles-step-1.png",
-        bullets: ["Fill cup halfway", "Place straw 1-2 cm below the water", "Sit tall, relax shoulders"]
+        id: "step-1",
+        title: "Step 1 - Set up",
+        text: "Fill the bottle to about 40%. Keep the straw tip 1-2 cm above the bottom.",
+        image: "/images/session/easy-bubbles-step-1.png",
+        points: ["Fill cup halfway", "Place straw 1-2 cm below the water", "Sit tall, relax shoulders"]
       },
       {
-        title: "Step 2",
-        subtitle: "Start easy",
-        imageUrl: "/images/session/easy-bubbles-step-2.png",
-        bullets: ["Blow gently", "Bubbles should be small and steady", "If water splashes, reduce pressure"]
+        id: "step-2",
+        title: "Step 2 - Start easy",
+        text: "If water splashes, pour some out. If it feels too easy, add a little water.",
+        image: "/images/session/easy-bubbles-step-2.png",
+        points: ["Blow gently", "Bubbles should be small and steady", "If water splashes, reduce pressure"]
       },
       {
-        title: "Step 3",
-        subtitle: "Keep it easy",
-        imageUrl: "/images/session/easy-bubbles-step-3.png",
-        bullets: ["Blow gently", "Keep bubbles small and steady", "No pushing"]
+        id: "step-3",
+        title: "Step 3 - Keep it easy",
+        text: "Blow gently. Keep the bubbles small, steady, and relaxed - no pushing.",
+        image: "/images/session/easy-bubbles-step-3.png",
+        points: ["Blow gently", "Keep bubbles small and steady", "No pushing"]
       }
     ],
     tips: ["Light resistance", "Steady bubbles", "No throat pressure", "No pushing"],
@@ -63,31 +70,34 @@ export const exerciseLibrary: ExerciseDefinition[] = [
   },
   {
     id: "soft-mmm",
-    title: "Soft “mmm”",
+    title: "Soft \"mmm\"",
     defaultTool: "Yellow 10mm Straw + Water Cup",
     instructions:
-      "Keep the yellow 10mm straw in the water. Start with small, steady bubbles, then add a soft “mmm” sound through the straw. Keep everything gentle and relaxed.",
+      "Keep the yellow 10mm straw in the water. Start with small, steady bubbles, then add a soft \"mmm\" sound through the straw. Keep everything gentle and relaxed.",
     requiresPianoDefault: false,
+    demoMode: "bubble-guide",
     demoAudioUrl: null,
-    demoComingSoon: true,
-    visualDemoSteps: [
+    visualSteps: [
       {
-        title: "Step 1",
-        subtitle: "Set up",
-        imageUrl: "/images/session/easy-bubbles-step-1.png",
-        bullets: ["Fill cup halfway", "Place straw 1-2 cm below the water", "Sit tall, relax shoulders"]
+        id: "step-1",
+        title: "Step 1 - Set up",
+        text: "Fill the bottle to about 40%. Keep the straw tip 1-2 cm above the bottom.",
+        image: "/images/session/easy-bubbles-step-1.png",
+        points: ["Fill cup halfway", "Place straw 1-2 cm below the water", "Sit tall, relax shoulders"]
       },
       {
-        title: "Step 2",
-        subtitle: "Start easy",
-        imageUrl: "/images/session/easy-bubbles-step-2.png",
-        bullets: ["Blow gently", "Bubbles should be small and steady", "If water splashes, reduce pressure"]
+        id: "step-2",
+        title: "Step 2 - Start easy",
+        text: "If water splashes, pour some out. If it feels too easy, add a little water.",
+        image: "/images/session/easy-bubbles-step-2.png",
+        points: ["Blow gently", "Bubbles should be small and steady", "If water splashes, reduce pressure"]
       },
       {
-        title: "Step 3",
-        subtitle: "Add voice",
-        imageUrl: "/images/session/soft-mmm-step-3.png",
-        bullets: ["Hum gently through the straw", "Keep it easy", "No pushing"]
+        id: "step-3",
+        title: "Step 3 - Add voice",
+        text: "Add a soft \"mmm\" sound through the straw. Keep the bubbles small, steady, and relaxed.",
+        image: "/images/session/soft-mmm-step-3.png",
+        points: ["Add a soft \"mmm\" through the straw", "Keep it easy", "No pushing"]
       }
     ],
     tips: ["Gentle vibration", "Relaxed throat", "Stable bubbling", "Voice turns on without effort"],
@@ -100,6 +110,7 @@ export const exerciseLibrary: ExerciseDefinition[] = [
     instructions:
       "Switch to the thinner 3mm metal straw. Perform wide, controlled sirens through your vocal range, from your lowest comfortable note to your highest comfortable note and back. Focus on smooth transitions between registers.",
     requiresPianoDefault: false,
+    demoMode: "audio-demo",
     demoAudioUrl: sirenDemo,
     tips: ["Smooth glide", "No break or flip", "No throat squeeze", "Easy movement from low to high and back"],
     mistakes: ["Jumping too fast", "Forcing high notes", "Letting the voice crack hard", "Pushing extra air at the top"]
@@ -110,6 +121,7 @@ export const exerciseLibrary: ExerciseDefinition[] = [
     defaultTool: "Metal 3mm Straw",
     instructions: "Move smoothly through your comfortable range in wave-like patterns. Keep tone connected and airflow steady.",
     requiresPianoDefault: false,
+    demoMode: "audio-demo",
     demoAudioUrl: wavesDemo,
     tips: ["Steady airflow", "Smooth transitions", "Relaxed jaw"],
     mistakes: ["Overpushing", "Tensing neck", "Losing airflow support"]
@@ -121,6 +133,7 @@ export const exerciseLibrary: ExerciseDefinition[] = [
     instructions:
       "Sing five neighboring notes through the straw. Example: C-D-E-F-G, then G-F-E-D-C. Keep every note clean and even. Repeat from slightly different starting pitches.",
     requiresPianoDefault: true,
+    demoMode: "audio-demo",
     demoAudioUrl: fiveNotesDemo,
     practiceAudioUrl: fiveNotesPiano,
     tips: ["Precise but relaxed", "Even airflow", "Clean note changes", "No jaw or tongue tension"],
@@ -133,6 +146,7 @@ export const exerciseLibrary: ExerciseDefinition[] = [
     instructions:
       "Sing a simple triad through the straw. Example: C-E-G-C, then C-G-E-C. Use one smooth breath. Repeat 6 times, starting slightly higher each time. Focus on precision and smoothness.",
     requiresPianoDefault: true,
+    demoMode: "audio-demo",
     demoAudioUrl: arpeggioDemo,
     practiceAudioUrl: arpeggioPiano,
     tips: ["Light and accurate", "Connected notes", "No strain at the top", "Stable breath"],
@@ -145,6 +159,7 @@ export const exerciseLibrary: ExerciseDefinition[] = [
     instructions:
       "Choose one lower note and one clearly higher note. Move between them: low-high-low-high. Keep both notes stable and clean. Make the jump precise, not forced.",
     requiresPianoDefault: true,
+    demoMode: "audio-demo",
     demoAudioUrl: twoNotesDemo,
     practiceAudioUrl: twoNotesPiano,
     tips: ["Clear contrast between notes", "Easy jump", "No throat grab", "Air stays steady"],
@@ -157,6 +172,7 @@ export const exerciseLibrary: ExerciseDefinition[] = [
     instructions:
       "Remove the straw. Sing or speak a short phrase gently. Try to keep the same easy, balanced feeling. Notice whether your voice feels freer, clearer, or more stable.",
     requiresPianoDefault: false,
+    demoMode: "audio-demo",
     demoAudioUrl: null,
     demoComingSoon: true,
     tips: ["Voice feels easier", "Tone feels more connected", "Less air leakage", "Less effort"],

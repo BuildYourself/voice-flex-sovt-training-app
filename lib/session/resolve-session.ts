@@ -1,5 +1,5 @@
 import type { DbExercise } from "@/lib/programs-client";
-import { exerciseLibrary, type ExerciseDefinition, type VisualDemoStep } from "@/lib/session/exercise-library";
+import { exerciseLibrary, type DemoMode, type ExerciseDefinition, type VisualDemoStep } from "@/lib/session/exercise-library";
 import { todayGuidedSessionTemplate, type SessionStepUsage, type SessionTemplate } from "@/lib/session/session-data";
 
 export interface ResolvedSessionStep {
@@ -12,9 +12,10 @@ export interface ResolvedSessionStep {
   tool: string;
   instructions: string;
   requiresPiano: boolean;
+  demoMode: DemoMode;
   demoAudioUrl: string | null;
   demoComingSoon: boolean;
-  visualDemoSteps: VisualDemoStep[];
+  visualSteps: VisualDemoStep[];
   practiceAudioUrl: string | null;
   demoDurationLabel: string;
   whatToDoNow: string;
@@ -42,6 +43,9 @@ function formatDuration(durationSec: number) {
 }
 
 function buildWhatToDoNow(step: ResolvedSessionStep) {
+  if (step.demoMode === "bubble-guide") {
+    return "Watch the setup guide first, then start the timer and perform the exercise calmly.";
+  }
   if (step.requiresPiano) {
     return "Listen to the demo first, then repeat with the piano accompaniment.";
   }
@@ -53,6 +57,7 @@ function resolveStep(exercise: ExerciseDefinition, step: SessionStepUsage, dbExe
   const durationSec = step.durationSec ?? dbExercise?.duration_seconds ?? 60;
   const demoAudioUrl = step.demoAudioUrlOverride ?? exercise.demoAudioUrl ?? null;
   const practiceAudioUrl = step.practiceAudioUrlOverride ?? exercise.practiceAudioUrl ?? null;
+  const demoMode = exercise.demoMode ?? "audio-demo";
   const instructions = step.instructionsOverride ?? dbExercise?.instruction ?? exercise.instructions;
   const tool = dbExercise?.tool || exercise.defaultTool;
   const tips = dbExercise?.how_it_should_feel?.length ? dbExercise.how_it_should_feel : exercise.tips;
@@ -68,9 +73,10 @@ function resolveStep(exercise: ExerciseDefinition, step: SessionStepUsage, dbExe
     tool,
     instructions,
     requiresPiano,
+    demoMode,
     demoAudioUrl,
-    demoComingSoon: Boolean(exercise.demoComingSoon && !demoAudioUrl),
-    visualDemoSteps: exercise.visualDemoSteps ?? [],
+    demoComingSoon: Boolean(exercise.demoComingSoon && !demoAudioUrl && demoMode !== "bubble-guide"),
+    visualSteps: exercise.visualSteps ?? [],
     practiceAudioUrl,
     demoDurationLabel: "0:16",
     whatToDoNow: dbExercise?.what_to_do_now || "",
@@ -100,9 +106,10 @@ function templateToResolved(template: SessionTemplate): ResolvedSessionStep[] {
           tool: "Voice Flex Tool",
           instructions: "Follow the guided exercise instructions.",
           requiresPiano: step.requiresPianoOverride ?? false,
+          demoMode: "audio-demo",
           demoAudioUrl: step.demoAudioUrlOverride ?? null,
           demoComingSoon: false,
-          visualDemoSteps: [],
+          visualSteps: [],
           practiceAudioUrl: step.practiceAudioUrlOverride ?? null,
           demoDurationLabel: "0:16",
           whatToDoNow: step.requiresPianoOverride ? "Listen to the demo first, then repeat with the piano accompaniment." : "Listen to the demo first, then start the timer and perform the exercise calmly.",
