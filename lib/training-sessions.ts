@@ -164,7 +164,7 @@ export const trainingSessionConfigs: Record<VoiceFlexProduct, TrainingSessionCon
     day: 1,
     exercises: [
       {
-        id: "go-waves",
+        id: "waves",
         title: "Waves",
         durationSeconds: 60,
         tool: "Voice Flex GO",
@@ -176,7 +176,7 @@ export const trainingSessionConfigs: Record<VoiceFlexProduct, TrainingSessionCon
         avoid: ["Pushing air", "Clamping your jaw", "Raising your shoulders", "Forcing the sound"]
       },
       {
-        id: "go-siren",
+        id: "siren",
         title: "Siren",
         durationSeconds: 90,
         tool: "Voice Flex GO",
@@ -187,7 +187,7 @@ export const trainingSessionConfigs: Record<VoiceFlexProduct, TrainingSessionCon
         avoid: ["Jumping too fast", "Forcing high notes", "Over-tightening", "Pushing extra air"]
       },
       {
-        id: "go-two-notes",
+        id: "two-notes",
         title: "2 Notes",
         durationSeconds: 90,
         tool: "Voice Flex GO",
@@ -205,7 +205,7 @@ export const trainingSessionConfigs: Record<VoiceFlexProduct, TrainingSessionCon
         ]
       },
       {
-        id: "go-arpeggio",
+        id: "arpeggio",
         title: "Arpeggio",
         durationSeconds: 90,
         tool: "Voice Flex GO",
@@ -218,7 +218,7 @@ export const trainingSessionConfigs: Record<VoiceFlexProduct, TrainingSessionCon
         avoid: ["Getting louder as notes rise", "Holding tension", "Running out of air early", "Pushing instead of gliding"]
       },
       {
-        id: "go-five-notes",
+        id: "five-notes",
         title: "5 Notes",
         durationSeconds: 90,
         tool: "Voice Flex GO",
@@ -231,7 +231,7 @@ export const trainingSessionConfigs: Record<VoiceFlexProduct, TrainingSessionCon
         avoid: ["Rushing the notes", "Losing airflow", "Over-controlling", "Letting pitch wobble"]
       },
       {
-        id: "go-voice-check",
+        id: "voice-check",
         title: "Voice Check",
         durationSeconds: 30,
         tool: "No Device",

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import {
@@ -31,6 +32,12 @@ import {
 } from "@/lib/training-sessions";
 
 type SessionMode = "ready" | "practice" | "paused" | "complete";
+
+const VERIFIED_ORDER_NUMBER_KEY = "voiceflex_verified_order_number";
+
+function getLocalDateString(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
 
 export function TrainingSession({ productType }: { productType: VoiceFlexProduct }) {
   const { progress, loading, markExerciseCompleted, addTrainingMinutes, updateProgress, updateStreakForToday, resetProgress } = useTrainingProgress(productType);
@@ -219,14 +226,52 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
     void playAudio("demo", step.demoAudioSrc);
   }
 
+  async function syncCompletedExercise(step: TrainingSessionExercise) {
+    const orderNumber = window.localStorage.getItem(VERIFIED_ORDER_NUMBER_KEY);
+
+    if (!orderNumber) {
+      console.warn("[training-session] Skipping remote progress sync because no verified order is stored.");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/progress/complete-exercise", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          orderNumber,
+          productType,
+          programDay: day,
+          exerciseId: step.id,
+          exerciseTitle: step.title,
+          durationSeconds: step.durationSeconds,
+          totalExercises: session.exercises.length,
+          practiceDate: getLocalDateString()
+        })
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        console.warn("[training-session] Progress sync failed.", payload ?? { status: response.status });
+      }
+    } catch (error) {
+      console.warn("[training-session] Progress sync failed.", error);
+    }
+  }
+
   function completeStep(step: TrainingSessionExercise) {
     clearTimer();
     stopAllAudio();
     setCompletedIds((current) => {
+      if (current.includes(step.id)) return current;
+
       const nextCompleted = Array.from(new Set([...current, step.id]));
       const nextIndex = session.exercises.findIndex((exercise) => !nextCompleted.includes(exercise.id));
       const isSessionComplete = nextCompleted.length >= session.exercises.length;
 
+      void syncCompletedExercise(step);
       markExerciseCompleted(dayKey, step.id);
       addTrainingMinutes(Math.round((step.durationSeconds / 60) * 10) / 10);
       updateStreakForToday();
@@ -518,7 +563,9 @@ function TrainingSidebar({
       <nav className="mt-10 space-y-2">
         <div className="rounded-2xl px-4 py-4 font-bold text-white/75">Setup</div>
         <div className="rounded-2xl bg-electric-600 px-4 py-4 font-black">Sessions</div>
-        <div className="rounded-2xl px-4 py-4 font-bold text-white/75">Progress</div>
+        <Link className="block rounded-2xl px-4 py-4 font-bold text-white/75 hover:bg-white/10" href={`/train/${productType}/progress`}>
+          Progress
+        </Link>
         <div className="rounded-2xl px-4 py-4 font-bold text-white/75">Settings</div>
       </nav>
       <div className="mt-auto rounded-3xl border border-white/10 bg-white/5 p-5 text-sm leading-6 text-white/75">

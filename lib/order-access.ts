@@ -1,6 +1,7 @@
 import type { VoiceFlexProduct } from "@/lib/training-product";
 
 export type VerifiedOrderProduct = {
+  orderAccessId: string;
   productType: VoiceFlexProduct;
   asin: string;
   sku?: string;
@@ -24,6 +25,7 @@ type VerifyOrderApiResponse =
   | {
       ok: true;
       status: "verified";
+      orderAccessId: string;
       orderNumber: string;
       asin: string;
       productType: VoiceFlexProduct;
@@ -47,6 +49,7 @@ function isVerifyOrderApiResponse(value: unknown): value is VerifyOrderApiRespon
   if (response.ok === true) {
     return (
       response.status === "verified" &&
+      typeof response.orderAccessId === "string" &&
       typeof response.orderNumber === "string" &&
       typeof response.asin === "string" &&
       (response.productType === "go" || response.productType === "pro") &&
@@ -110,6 +113,7 @@ export async function verifyOrderNumber(
       ok: true,
       product: {
         productType: payload.productType,
+        orderAccessId: payload.orderAccessId,
         asin: payload.asin,
         productName: payload.productName,
         orderNumber: payload.orderNumber,

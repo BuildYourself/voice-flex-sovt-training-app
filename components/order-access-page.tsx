@@ -23,6 +23,9 @@ import {
 import { setActiveProduct } from "@/lib/training-product";
 import { trainingProgressStore } from "@/lib/training-progress";
 
+const VERIFIED_ORDER_NUMBER_KEY = "voiceflex_verified_order_number";
+const ORDER_ACCESS_ID_KEY = "voiceflex_order_access_id";
+
 const productCards = [
   {
     title: "Voice Flex GO",
@@ -138,6 +141,8 @@ export function OrderAccessPage() {
     const { product } = result;
 
     setActiveProduct(product.productType);
+    window.localStorage.setItem(VERIFIED_ORDER_NUMBER_KEY, product.orderNumber ?? "");
+    window.localStorage.setItem(ORDER_ACCESS_ID_KEY, product.orderAccessId);
     trainingProgressStore.getOrCreateProgress(product.productType);
     setVerifiedProduct(product);
     setIsVerifying(false);
