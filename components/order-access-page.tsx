@@ -1,9 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import type { FormEvent } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
-  ArrowRight,
   CalendarCheck,
   CheckCircle2,
   HelpCircle,
@@ -32,12 +32,14 @@ const productCards = [
     badge: "GO",
     text: "Lightweight training, anywhere you go.",
     type: "go",
+    imageSrc: "/images/voiceflexgo.png",
   },
   {
     title: "Voice Flex",
     badge: "Pro",
     text: "Complete kit for serious progress.",
     type: "pro",
+    imageSrc: "/images/voiceflexpro.png",
   },
 ] as const;
 
@@ -76,19 +78,15 @@ function BackgroundWaves() {
 function ProductCard({ product }: { product: (typeof productCards)[number] }) {
   return (
     <div className="flex min-h-32 items-center gap-5 rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
-      <div className="grid h-24 w-36 shrink-0 place-items-center overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 to-white">
-        {product.type === "go" ? (
-          <div className="grid h-20 w-12 rotate-[-12deg] place-items-center rounded-2xl bg-gradient-to-br from-blue-400 to-blue-700 text-white shadow-xl">
-            <Waves className="h-5 w-5" />
-          </div>
-        ) : (
-          <div className="relative h-20 w-28">
-            <div className="absolute bottom-2 left-1 h-16 w-8 rounded-xl bg-slate-950 shadow-lg" />
-            <div className="absolute bottom-2 left-12 h-16 w-1.5 rounded-full bg-amber-400" />
-            <div className="absolute bottom-2 left-[68px] h-16 w-1.5 rounded-full bg-slate-800" />
-            <div className="absolute bottom-2 left-[88px] h-16 w-1.5 rounded-full bg-blue-500" />
-          </div>
-        )}
+      <div className="relative grid h-24 w-36 shrink-0 place-items-center overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 via-white to-blue-50/70">
+        <Image
+          src={product.imageSrc}
+          alt={`${product.title} ${product.badge}`}
+          fill
+          sizes="144px"
+          className="object-contain p-2.5 drop-shadow-[0_12px_18px_rgba(37,99,235,0.18)]"
+          priority={false}
+        />
       </div>
       <div className="min-w-0 flex-1 text-left">
         <h3 className="flex items-center gap-2 text-xl font-black tracking-tight text-navy-950">
@@ -105,7 +103,6 @@ function ProductCard({ product }: { product: (typeof productCards)[number] }) {
           {product.text}
         </p>
       </div>
-      <ArrowRight className="h-7 w-7 shrink-0 text-slate-500" />
     </div>
   );
 }

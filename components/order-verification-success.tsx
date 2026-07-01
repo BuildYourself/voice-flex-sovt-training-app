@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowRight,
@@ -38,25 +39,19 @@ const benefitItems: { Icon: LucideIcon; title: string; text: string }[] = [
 ];
 
 function ProductVisual({ product }: { product: VerifiedOrderProduct }) {
-  if (product.productType === "pro") {
-    return (
-      <div className="relative mx-auto h-44 w-full max-w-md overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-white via-blue-50/60 to-white">
-        <div className="absolute inset-x-0 top-20 h-24 bg-[radial-gradient(ellipse_at_center,rgba(37,99,235,0.16),transparent_68%)]" />
-        <div className="absolute bottom-7 left-[20%] h-28 w-12 rounded-3xl bg-slate-950 shadow-2xl" />
-        <div className="absolute bottom-7 left-[44%] h-28 w-2.5 rounded-full bg-amber-400 shadow-lg" />
-        <div className="absolute bottom-7 left-[54%] h-28 w-2.5 rounded-full bg-slate-800 shadow-lg" />
-        <div className="absolute bottom-7 left-[64%] h-28 w-2.5 rounded-full bg-blue-500 shadow-lg" />
-        <div className="absolute bottom-5 left-[16%] right-[16%] h-1 rounded-full bg-slate-200/80" />
-      </div>
-    );
-  }
+  const imageSrc = product.productType === "pro" ? "/images/voiceflexpro.png" : "/images/voiceflexgo.png";
 
   return (
     <div className="relative mx-auto grid h-44 w-full max-w-md place-items-center overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-white via-blue-50/70 to-white">
       <div className="absolute inset-x-0 top-24 h-20 bg-[radial-gradient(ellipse_at_center,rgba(37,99,235,0.18),transparent_65%)]" />
-      <div className="grid h-36 w-20 rotate-[-18deg] place-items-center rounded-[1.7rem] bg-gradient-to-br from-blue-400 to-blue-700 text-white shadow-2xl shadow-blue-200">
-        <Waves className="h-8 w-8" />
-      </div>
+      <Image
+        src={imageSrc}
+        alt={product.productName}
+        fill
+        sizes="(max-width: 768px) 90vw, 448px"
+        className="object-contain p-5 drop-shadow-[0_18px_24px_rgba(37,99,235,0.2)]"
+        priority
+      />
     </div>
   );
 }

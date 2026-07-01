@@ -9,11 +9,11 @@ import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 
 const nav = [
-  { href: "/dashboard", label: "Dashboard", icon: Home },
-  { href: "/session", label: "Sessions", icon: PlayCircle },
-  { href: "/programs", label: "Programs", icon: SquareLibrary },
-  { href: "/exercises", label: "Exercises", icon: Dumbbell },
-  { href: "/settings", label: "Settings", icon: Settings }
+  { href: "/dashboard", label: "🏠 Dashboard", icon: Home },
+  { href: "/session", label: "🎙️ Sessions", icon: PlayCircle },
+  { href: "/programs", label: "📚 Programs", icon: SquareLibrary },
+  { href: "/exercises", label: "🎚️ Exercises", icon: Dumbbell },
+  { href: "/settings", label: "⚙️ Settings", icon: Settings }
 ];
 
 interface SidebarUser {

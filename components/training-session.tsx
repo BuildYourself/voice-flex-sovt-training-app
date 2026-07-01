@@ -34,6 +34,7 @@ import {
 type SessionMode = "ready" | "practice" | "paused" | "complete";
 
 const VERIFIED_ORDER_NUMBER_KEY = "voiceflex_verified_order_number";
+const SHOW_DEV_RESET = process.env.NEXT_PUBLIC_SHOW_DEV_RESET === "true";
 
 function getLocalDateString(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -561,12 +562,12 @@ function TrainingSidebar({
         Voice Flex
       </div>
       <nav className="mt-10 space-y-2">
-        <div className="rounded-2xl px-4 py-4 font-bold text-white/75">Setup</div>
-        <div className="rounded-2xl bg-electric-600 px-4 py-4 font-black">Sessions</div>
+        <div className="rounded-2xl px-4 py-4 font-bold text-white/75">🚀 Setup</div>
+        <div className="rounded-2xl bg-electric-600 px-4 py-4 font-black">🎙️ Sessions</div>
         <Link className="block rounded-2xl px-4 py-4 font-bold text-white/75 hover:bg-white/10" href={`/train/${productType}/progress`}>
-          Progress
+          📊 Progress
         </Link>
-        <div className="rounded-2xl px-4 py-4 font-bold text-white/75">Settings</div>
+        <div className="rounded-2xl px-4 py-4 font-bold text-white/75">⚙️ Settings</div>
       </nav>
       <div className="mt-auto rounded-3xl border border-white/10 bg-white/5 p-5 text-sm leading-6 text-white/75">
         <p className="font-black text-white">{productType === "pro" ? "Voice Flex Pro" : "Voice Flex GO"}</p>
@@ -575,10 +576,12 @@ function TrainingSidebar({
           <button className="rounded-xl border border-white/15 px-3 py-2 text-left text-xs font-black text-white/85 hover:bg-white/10" type="button" onClick={onRestartSetup}>
             Restart setup
           </button>
-          <button className="rounded-xl border border-white/15 px-3 py-2 text-left text-xs font-black text-white/85 hover:bg-white/10" type="button" onClick={onResetProgress}>
-            <RotateCcw className="mr-2 inline h-3.5 w-3.5" />
-            Reset local progress
-          </button>
+          {SHOW_DEV_RESET ? (
+            <button className="rounded-xl border border-white/15 px-3 py-2 text-left text-xs font-black text-white/85 hover:bg-white/10" type="button" onClick={onResetProgress}>
+              <RotateCcw className="mr-2 inline h-3.5 w-3.5" />
+              Reset local progress
+            </button>
+          ) : null}
         </div>
       </div>
     </aside>

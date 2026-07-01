@@ -1,8 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
-import { ArrowLeft, ArrowRight, Check, Play, RotateCcw, Waves } from "lucide-react";
+import { ArrowRight, Check, RotateCcw, Waves } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -23,7 +22,6 @@ export function TrainingOnboarding({
 }) {
   const config = trainingOnboardingConfigs[productType];
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [showProductSwitch, setShowProductSwitch] = useState(false);
   const currentStep = config.steps[currentStepIndex];
   const currentNumber = currentStepIndex + 1;
   const totalSteps = config.steps.length;
@@ -51,10 +49,10 @@ export function TrainingOnboarding({
           Voice Flex
         </div>
         <nav className="mt-10 space-y-2">
-          <div className="rounded-2xl bg-electric-600 px-4 py-4 font-black">Setup</div>
-          <div className="rounded-2xl px-4 py-4 font-bold text-white/75">Sessions</div>
-          <div className="rounded-2xl px-4 py-4 font-bold text-white/75">Progress</div>
-          <div className="rounded-2xl px-4 py-4 font-bold text-white/75">Settings</div>
+          <div className="rounded-2xl bg-electric-600 px-4 py-4 font-black">🚀 Setup</div>
+          <div className="rounded-2xl px-4 py-4 font-bold text-white/75">🎙️ Sessions</div>
+          <div className="rounded-2xl px-4 py-4 font-bold text-white/75">📊 Progress</div>
+          <div className="rounded-2xl px-4 py-4 font-bold text-white/75">⚙️ Settings</div>
         </nav>
         <div className="mt-auto rounded-3xl border border-white/10 bg-white/5 p-5 text-sm leading-6 text-white/75">
           <p className="font-black text-white">No account required</p>
@@ -69,9 +67,6 @@ export function TrainingOnboarding({
               <h1 className="text-[30px] font-black leading-tight tracking-normal text-black md:text-[36px]">{config.title}</h1>
               <p className="mt-2 max-w-4xl text-base leading-7 text-slate-600 md:text-lg">{config.subtitle}</p>
             </div>
-            <button className="text-left text-sm font-bold text-electric-700 hover:text-electric-800" type="button" onClick={() => setShowProductSwitch(true)}>
-              Change product
-            </button>
           </header>
 
           <div className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_330px]">
@@ -135,13 +130,6 @@ export function TrainingOnboarding({
                                 className="h-full min-h-[340px] w-full object-cover"
                               />
                               <div className="absolute inset-0 bg-gradient-to-t from-white/10 via-transparent to-white/5" />
-                              <button
-                                className="absolute left-1/2 top-1/2 grid h-16 w-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-electric-600 text-white shadow-blue ring-4 ring-white/80"
-                                type="button"
-                                aria-label="Play setup preview"
-                              >
-                                <Play className="ml-1 h-7 w-7 fill-current" />
-                              </button>
                             </>
                           ) : (
                             <div className="relative flex h-full min-h-[340px] flex-col items-center justify-center p-8 text-center">
@@ -151,9 +139,6 @@ export function TrainingOnboarding({
                               </div>
                               <h3 className="relative mt-6 text-4xl font-black text-navy-950">{currentStep.visualTitle}</h3>
                               <p className="relative mt-2 text-lg font-semibold text-slate-600">{currentStep.visualSubtitle}</p>
-                              <button className="relative mt-6 grid h-16 w-16 place-items-center rounded-full bg-electric-600 text-white shadow-blue" type="button" aria-label="Play setup preview">
-                                <Play className="ml-1 h-7 w-7 fill-current" />
-                              </button>
                             </div>
                           )}
                         </div>
@@ -249,24 +234,6 @@ export function TrainingOnboarding({
         </div>
       </main>
 
-      {showProductSwitch && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-navy-950/40 px-4">
-          <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-card">
-            <h2 className="text-2xl font-black text-navy-950">Switch product?</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-600">
-              Changing your product will open a different setup and training plan. Your progress for each product is saved separately on this device.
-            </p>
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              <Button variant="outline" className="h-11 rounded-xl font-black" onClick={() => setShowProductSwitch(false)}>
-                Cancel
-              </Button>
-              <Button asChild className="h-11 rounded-xl font-black">
-                <Link href="/train">Switch Product</Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

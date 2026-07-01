@@ -6,10 +6,10 @@ import { Home, PlayCircle, Settings, SquareLibrary } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const tabs = [
-  { href: "/dashboard", label: "Home", icon: Home },
-  { href: "/programs", label: "Programs", icon: SquareLibrary },
-  { href: "/session", label: "Session", icon: PlayCircle },
-  { href: "/settings", label: "Settings", icon: Settings }
+  { href: "/dashboard", label: "🏠 Home", icon: Home },
+  { href: "/programs", label: "📚 Programs", icon: SquareLibrary },
+  { href: "/session", label: "🎙️ Session", icon: PlayCircle },
+  { href: "/settings", label: "⚙️ Settings", icon: Settings }
 ];
 
 export function MobileBottomNav() {
