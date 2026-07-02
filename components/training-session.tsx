@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   Check,
   CheckCircle2,
+  ChevronDown,
   Eye,
   KeyboardMusic,
   Pause,
@@ -372,8 +373,29 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
         }}
       />
 
-      <main className="px-4 py-6 sm:px-6 lg:ml-[272px] lg:px-8">
-        <div className="mx-auto max-w-[1680px]">
+      <main className="px-4 py-6 pb-28 sm:px-6 md:pb-6 lg:ml-[272px] lg:px-8">
+        <MobileTrainingSession
+          sessionTitle={session.title}
+          currentStep={currentStep}
+          currentStepIndex={currentStepIndex}
+          steps={session.exercises}
+          completedIds={completedIds}
+          remainingSeconds={remainingSeconds}
+          totalSeconds={totalSeconds}
+          overviewSeconds={overviewSeconds}
+          overviewPercent={overviewPercent}
+          safeStepProgress={safeStepProgress}
+          upcomingSteps={upcomingSteps}
+          mode={mode}
+          playingAudio={playingAudio}
+          allComplete={allComplete}
+          onPracticeClick={handlePracticeClick}
+          onToggleDemo={toggleDemoAudio}
+          onPrevious={previousStep}
+          onSkip={skipStep}
+        />
+
+        <div className="mx-auto hidden max-w-[1680px] md:block">
           <header className="mb-8 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             <div>
               <h1 className="text-[32px] font-black leading-tight tracking-normal text-black md:text-[38px]">{session.title}</h1>
@@ -541,6 +563,335 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
         </div>
       </main>
     </div>
+  );
+}
+
+function MobileTrainingSession({
+  sessionTitle,
+  currentStep,
+  currentStepIndex,
+  steps,
+  completedIds,
+  remainingSeconds,
+  totalSeconds,
+  overviewSeconds,
+  overviewPercent,
+  safeStepProgress,
+  upcomingSteps,
+  mode,
+  playingAudio,
+  allComplete,
+  onPracticeClick,
+  onToggleDemo,
+  onPrevious,
+  onSkip
+}: {
+  sessionTitle: string;
+  currentStep: TrainingSessionExercise;
+  currentStepIndex: number;
+  steps: TrainingSessionExercise[];
+  completedIds: string[];
+  remainingSeconds: number;
+  totalSeconds: number;
+  overviewSeconds: number;
+  overviewPercent: number;
+  safeStepProgress: number;
+  upcomingSteps: TrainingSessionExercise[];
+  mode: SessionMode;
+  playingAudio: "demo" | "accompaniment" | null;
+  allComplete: boolean;
+  onPracticeClick: () => void;
+  onToggleDemo: (step: TrainingSessionExercise) => void;
+  onPrevious: () => void;
+  onSkip: () => void;
+}) {
+  const actionLabel =
+    mode === "practice"
+      ? "Pause"
+      : mode === "paused"
+        ? "Resume"
+        : currentStep.accompanimentAudioSrc
+          ? "Start Practice"
+          : "Start Exercise";
+  const shortActionLabel = mode === "practice" ? "Pause" : mode === "paused" ? "Resume" : "Start";
+  const modeLabel = mode === "practice" ? "Practicing" : mode === "paused" ? "Paused" : mode === "complete" ? "Session Complete" : "Ready";
+  const progressLabel = `${formatSessionTimer(overviewSeconds)} done`;
+
+  return (
+    <div className="md:hidden">
+      <div className="sticky top-0 z-30 -mx-4 mb-4 border-b border-slate-200/70 bg-[#f6f9fd]/95 px-4 pb-3 pt-2 backdrop-blur">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-electric-700">{sessionTitle}</p>
+            <h1 className="mt-1 truncate text-2xl font-black leading-tight text-black">{currentStep.title}</h1>
+            <p className="text-sm font-bold text-electric-700">
+              Step {currentStepIndex + 1}/{steps.length}
+            </p>
+          </div>
+          <div className="rounded-2xl bg-white px-3 py-2 text-right text-xs font-bold text-slate-600 shadow-sm ring-1 ring-slate-200">
+            <span className="block text-base font-black text-black">{formatSessionTimer(remainingSeconds)}</span>
+            remaining
+          </div>
+        </div>
+        <div className="mt-3 h-2 rounded-full bg-slate-200">
+          <div className="h-full rounded-full bg-electric-600" style={{ width: `${overviewPercent}%` }} />
+        </div>
+        <div className="mt-2 flex justify-between text-sm font-semibold text-slate-600">
+          <span className="text-electric-700">{progressLabel}</span>
+          <span>{formatSessionTimer(totalSeconds)} total</span>
+        </div>
+      </div>
+
+      <MobileStepScroller steps={steps} currentStepIndex={currentStepIndex} completedIds={completedIds} />
+
+      <Card className="mt-4 overflow-hidden rounded-[28px]">
+        <CardContent className="p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3 text-electric-700">
+              <Waves className="h-7 w-7" />
+              <span className="font-black">Current Exercise</span>
+            </div>
+            <span className="rounded-xl bg-blue-100 px-3 py-2 text-sm font-black text-electric-700">
+              Step {currentStepIndex + 1} of {steps.length}
+            </span>
+          </div>
+
+          <h2 className="mt-5 text-[40px] font-black leading-none text-black">{currentStep.title}</h2>
+          <p className="mt-4 flex items-center gap-2 text-sm font-semibold text-slate-700">
+            <span className="h-3 w-3 rounded-full bg-amber-400" />
+            Tool: {currentStep.tool ?? "Voice Flex"}
+          </p>
+          <p className="mt-4 text-base leading-7 text-slate-700">{currentStep.description}</p>
+
+          <div className="mt-5 flex justify-center">
+            <MobileTimerRing progress={safeStepProgress} remainingSeconds={remainingSeconds} />
+          </div>
+
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <Button className="col-span-2 h-14 rounded-2xl text-base font-black shadow-blue md:col-span-1" onClick={onPracticeClick} disabled={allComplete}>
+              {mode === "practice" ? <Pause className="mr-2 h-5 w-5 fill-current" /> : <Play className="mr-2 h-5 w-5 fill-current" />}
+              {actionLabel}
+            </Button>
+            <Button
+              variant="outline"
+              className="h-14 rounded-2xl border-blue-200 bg-white text-base font-black text-electric-700"
+              type="button"
+              disabled={mode === "practice" || !currentStep.demoAudioSrc}
+              onClick={() => onToggleDemo(currentStep)}
+            >
+              {playingAudio === "demo" ? <Pause className="mr-2 h-5 w-5 fill-current" /> : <Play className="mr-2 h-5 w-5 fill-current" />}
+              Demo
+            </Button>
+            <Button variant="outline" className="h-12 rounded-2xl border-slate-200 bg-white font-black text-electric-700" onClick={onPrevious} disabled={currentStepIndex === 0}>
+              <SkipBack className="mr-2 h-4 w-4" />
+              Previous
+            </Button>
+            <Button variant="outline" className="h-12 rounded-2xl border-slate-200 bg-white font-black text-electric-700" onClick={onSkip} disabled={currentStepIndex >= steps.length - 1}>
+              Skip
+              <SkipForward className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="mt-4 inline-flex rounded-full bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700">
+            <span className="mr-2 mt-1 h-2 w-2 rounded-full bg-emerald-500" />
+            Mode: {modeLabel}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="mt-4 space-y-3">
+        <MobileInfoSection icon={<Target className="h-6 w-6" />} title="What to do now" tone="green" defaultOpen>
+          <p>{currentStep.whatToDoNow}</p>
+        </MobileInfoSection>
+        <MobileInfoSection icon={<CheckCircle2 className="h-6 w-6" />} title="Tips" tone="blue">
+          <p>{currentStep.tips.slice(0, 3).join(" • ")}</p>
+          <ul className="mt-3 space-y-2">
+            {currentStep.tips.map((tip) => (
+              <li key={tip} className="flex gap-2">
+                <Check className="mt-1 h-4 w-4 shrink-0 text-electric-700" />
+                <span>{tip}</span>
+              </li>
+            ))}
+          </ul>
+        </MobileInfoSection>
+        <MobileInfoSection icon={<AlertTriangle className="h-6 w-6" />} title="Avoid" tone="red">
+          <p>{currentStep.avoid.slice(0, 3).join(" • ")}</p>
+          <ul className="mt-3 space-y-2">
+            {currentStep.avoid.map((item) => (
+              <li key={item} className="flex gap-2">
+                <span className="text-red-500">x</span>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </MobileInfoSection>
+        <MobileInfoSection icon={<Waves className="h-6 w-6" />} title="Session Overview" tone="blue">
+          <div className="space-y-3">
+            <div className="flex justify-between text-sm">
+              <span>Total length</span>
+              <span className="font-black text-black">{formatSessionDuration(totalSeconds)}</span>
+            </div>
+            <div className="h-2 rounded-full bg-slate-200">
+              <div className="h-full rounded-full bg-emerald-400" style={{ width: `${overviewPercent}%` }} />
+            </div>
+            <div className="flex justify-between text-sm">
+              <span>{completedIds.length} steps completed</span>
+              <span>{formatSessionTimer(overviewSeconds)} practiced</span>
+            </div>
+          </div>
+        </MobileInfoSection>
+      </div>
+
+      <Card className="mt-4 rounded-[24px]">
+        <CardContent className="p-4">
+          <h2 className="text-xl font-black text-black">Up Next</h2>
+          <div className="mt-4 space-y-3">
+            {upcomingSteps.slice(0, 3).map((step) => (
+              <div key={step.id} className="flex items-center gap-3">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-200 text-sm font-black text-slate-600">
+                  {steps.findIndex((exercise) => exercise.id === step.id) + 1}
+                </span>
+                <span className="min-w-0 flex-1 truncate font-black text-black">{step.title}</span>
+                {step.requiresPiano && <KeyboardMusic className="h-4 w-4 text-electric-700" />}
+                <span className="text-sm text-slate-500">{formatSessionDuration(step.durationSeconds)}</span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-slate-700">
+        <Shield className="mr-2 inline h-4 w-4 text-amber-500" />
+        <span className="font-black text-navy-950">Safety Note:</span> Stop and rest if you feel pain, dizziness, or scratchiness.
+      </div>
+
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-18px_40px_rgba(15,23,42,0.12)] backdrop-blur md:hidden" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
+        <div className="mx-auto flex max-w-md items-center justify-between gap-3">
+          <div className="flex items-center gap-3 text-slate-700">
+            <span className="text-2xl text-electric-700">☰</span>
+            <span className="font-black">
+              Step {currentStepIndex + 1}/{steps.length}
+            </span>
+          </div>
+          <Button className="h-14 min-w-[150px] rounded-2xl text-lg font-black shadow-blue" onClick={onPracticeClick} disabled={allComplete}>
+            {shortActionLabel}
+            <SkipForward className="ml-3 h-5 w-5" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MobileStepScroller({
+  steps,
+  currentStepIndex,
+  completedIds
+}: {
+  steps: TrainingSessionExercise[];
+  currentStepIndex: number;
+  completedIds: string[];
+}) {
+  return (
+    <div className="-mx-4 overflow-x-auto border-b border-slate-200 px-4 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex snap-x gap-2">
+        {steps.map((step, index) => {
+          const isCompleted = completedIds.includes(step.id);
+          const isActive = index === currentStepIndex && !isCompleted;
+          return (
+            <div
+              key={step.id}
+              className={cn(
+                "flex min-w-fit snap-start items-center gap-2 rounded-2xl border px-3 py-3 text-sm font-black",
+                isCompleted && "border-emerald-100 bg-white text-slate-700",
+                isActive && "border-electric-600 bg-electric-600 text-white shadow-blue",
+                !isCompleted && !isActive && "border-slate-200 bg-white text-slate-700"
+              )}
+              aria-current={isActive ? "step" : undefined}
+            >
+              <span
+                className={cn(
+                  "grid h-7 w-7 place-items-center rounded-full text-xs",
+                  isCompleted && "bg-emerald-50 text-emerald-600",
+                  isActive && "bg-white text-electric-700",
+                  !isCompleted && !isActive && "bg-slate-200 text-slate-700"
+                )}
+              >
+                {isCompleted ? <Check className="h-4 w-4" /> : index + 1}
+              </span>
+              <span className="max-w-[96px] truncate">{step.title}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function MobileTimerRing({ progress, remainingSeconds }: { progress: number; remainingSeconds: number }) {
+  const radius = 62;
+  const circumference = 2 * Math.PI * radius;
+  const dashOffset = circumference * (1 - progress);
+
+  return (
+    <div className="relative h-[164px] w-[164px]">
+      <svg className="h-full w-full -rotate-90" viewBox="0 0 164 164">
+        <circle cx="82" cy="82" r={radius} fill="none" stroke="#dbeafe" strokeWidth="10" />
+        <circle
+          cx="82"
+          cy="82"
+          r={radius}
+          fill="none"
+          stroke="#1d6df2"
+          strokeLinecap="round"
+          strokeWidth="10"
+          strokeDasharray={circumference}
+          strokeDashoffset={dashOffset}
+        />
+      </svg>
+      <div className="absolute inset-0 grid place-items-center text-center">
+        <div>
+          <p className="text-4xl font-black text-black">{formatSessionTimer(remainingSeconds)}</p>
+          <p className="mt-1 text-sm text-slate-500">Remaining</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MobileInfoSection({
+  icon,
+  title,
+  tone,
+  defaultOpen,
+  children
+}: {
+  icon: ReactNode;
+  title: string;
+  tone: "green" | "blue" | "red";
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <details className="group rounded-[24px] border border-slate-200 bg-white shadow-card" open={defaultOpen}>
+      <summary className="flex min-h-16 cursor-pointer list-none items-center gap-3 px-4 py-4 [&::-webkit-details-marker]:hidden">
+        <span
+          className={cn(
+            "shrink-0",
+            tone === "green" && "text-emerald-600",
+            tone === "blue" && "text-electric-700",
+            tone === "red" && "text-red-500"
+          )}
+        >
+          {icon}
+        </span>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-xl font-black text-black">{title}</h3>
+        </div>
+        <ChevronDown className="h-5 w-5 text-slate-500 transition group-open:rotate-180" />
+      </summary>
+      <div className="px-4 pb-4 text-sm leading-7 text-slate-600">{children}</div>
+    </details>
   );
 }
 
