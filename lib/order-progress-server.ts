@@ -198,6 +198,29 @@ export function calculatePracticeStreak(activityDates: string[]) {
   return streak;
 }
 
+export function calculateNextPracticeStreak(
+  lastPracticeDate: string | null,
+  currentPracticeStreak: number | null,
+  today: string,
+) {
+  if (!lastPracticeDate) {
+    return 1;
+  }
+
+  if (lastPracticeDate === today) {
+    return currentPracticeStreak ?? 1;
+  }
+
+  const previousDay = dateToUtcDay(lastPracticeDate);
+  const todayDay = dateToUtcDay(today);
+
+  if (todayDay - previousDay === 1) {
+    return (currentPracticeStreak ?? 0) + 1;
+  }
+
+  return 1;
+}
+
 export function secondsToMinutes(seconds: number) {
   return Math.round((seconds / 60) * 10) / 10;
 }

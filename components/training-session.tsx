@@ -1,27 +1,36 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import {
   AlertTriangle,
+  ArrowRight,
+  BarChart3,
   Check,
   CheckCircle2,
   ChevronDown,
+  Clock,
   Eye,
+  Flame,
+  Heart,
   KeyboardMusic,
   Pause,
   Play,
-  RotateCcw,
   Shield,
   SkipBack,
   SkipForward,
+  Star,
   Target,
-  Waves
+  Waves,
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { TrainingSidebar } from "@/components/training-sidebar";
 import { useTrainingProgress } from "@/hooks/use-training-progress";
+import { getMilestoneOrderAccessId, recordLocalExerciseCompletion, recordLocalFullSessionCompletion } from "@/lib/local-milestones";
 import { cn } from "@/lib/utils";
 import type { VoiceFlexProduct } from "@/lib/training-product";
 import {
@@ -35,14 +44,28 @@ import {
 type SessionMode = "ready" | "practice" | "paused" | "complete";
 
 const VERIFIED_ORDER_NUMBER_KEY = "voiceflex_verified_order_number";
-const SHOW_DEV_RESET = process.env.NEXT_PUBLIC_SHOW_DEV_RESET === "true";
-
 function getLocalDateString(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
+function createSessionRunId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 export function TrainingSession({ productType }: { productType: VoiceFlexProduct }) {
-  const { progress, loading, markExerciseCompleted, addTrainingMinutes, updateProgress, updateStreakForToday, resetProgress } = useTrainingProgress(productType);
+  const router = useRouter();
+  const {
+    progress,
+    loading,
+    markExerciseCompleted,
+    addTrainingMinutes,
+    updateProgress,
+    updateStreakForToday,
+    refreshProgressStats
+  } = useTrainingProgress(productType);
   const session = useMemo(() => getTrainingSessionConfig(productType), [productType]);
   const day = progress?.currentDay ?? session.day;
   const dayKey = `day-${day}`;
@@ -51,7 +74,10 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
   const [remainingSeconds, setRemainingSeconds] = useState(session.exercises[0]?.durationSeconds ?? 0);
   const [mode, setMode] = useState<SessionMode>("ready");
   const [playingAudio, setPlayingAudio] = useState<"demo" | "accompaniment" | null>(null);
+  const [sessionCompleteModalOpen, setSessionCompleteModalOpen] = useState(false);
   const hydratedRef = useRef(false);
+  const hasShownSessionCompleteModalRef = useRef(false);
+  const sessionRunIdRef = useRef(createSessionRunId());
   const intervalRef = useRef<number | null>(null);
   const demoAudioRef = useRef<HTMLAudioElement | null>(null);
   const accompanimentAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -233,7 +259,7 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
 
     if (!orderNumber) {
       console.warn("[training-session] Skipping remote progress sync because no verified order is stored.");
-      return;
+      return false;
     }
 
     try {
@@ -257,9 +283,13 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
         console.warn("[training-session] Progress sync failed.", payload ?? { status: response.status });
+        return false;
       }
+
+      return true;
     } catch (error) {
       console.warn("[training-session] Progress sync failed.", error);
+      return false;
     }
   }
 
@@ -273,19 +303,43 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
       const nextIndex = session.exercises.findIndex((exercise) => !nextCompleted.includes(exercise.id));
       const isSessionComplete = nextCompleted.length >= session.exercises.length;
 
-      void syncCompletedExercise(step);
+      void syncCompletedExercise(step).then((synced) => {
+        if (synced) {
+          void refreshProgressStats();
+        }
+      });
       markExerciseCompleted(dayKey, step.id);
       addTrainingMinutes(Math.round((step.durationSeconds / 60) * 10) / 10);
       updateStreakForToday();
+      recordLocalExerciseCompletion({
+        productType,
+        orderAccessId: getMilestoneOrderAccessId(),
+        exerciseId: step.id,
+        exerciseTitle: step.title,
+        durationSeconds: step.durationSeconds,
+        programDay: day,
+        completedAt: new Date().toISOString(),
+        sessionRunId: sessionRunIdRef.current
+      });
 
       if (isSessionComplete && progress) {
         updateProgress({
           completedDays: Array.from(new Set([...progress.completedDays, day]))
         });
+        recordLocalFullSessionCompletion({
+          productType,
+          orderAccessId: getMilestoneOrderAccessId(),
+          completedAt: new Date().toISOString(),
+          sessionRunId: sessionRunIdRef.current
+        });
       }
 
       if (isSessionComplete || nextIndex === -1) {
         setMode("complete");
+        if (!hasShownSessionCompleteModalRef.current) {
+          hasShownSessionCompleteModalRef.current = true;
+          setSessionCompleteModalOpen(true);
+        }
       } else {
         setCurrentStepIndex(nextIndex);
         setMode("ready");
@@ -351,6 +405,14 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
     setMode("ready");
   }
 
+  function handleViewProgress() {
+    router.push(`/train/${productType}/progress`);
+  }
+
+  function handleBackToDashboard() {
+    router.push(`/train/${productType}`);
+  }
+
   if (loading || !progress) {
     return (
       <main className="grid min-h-screen place-items-center bg-[#f6f9fd] px-4 text-navy-950">
@@ -361,17 +423,7 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
 
   return (
     <div className="min-h-screen bg-[#f6f9fd] text-navy-950">
-      <TrainingSidebar
-        productType={productType}
-        onRestartSetup={() => {
-          updateProgress({ onboardingCompleted: false });
-          window.location.reload();
-        }}
-        onResetProgress={() => {
-          resetProgress();
-          window.location.reload();
-        }}
-      />
+      <TrainingSidebar productType={productType} activeItem="sessions" />
 
       <main className="px-4 py-6 pb-28 sm:px-6 md:pb-6 lg:ml-[272px] lg:px-8">
         <MobileTrainingSession
@@ -562,6 +614,131 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
           </div>
         </div>
       </main>
+      <SessionCompleteModal
+        open={sessionCompleteModalOpen}
+        onClose={() => setSessionCompleteModalOpen(false)}
+        onViewProgress={handleViewProgress}
+        onBackToDashboard={handleBackToDashboard}
+        timeTrainedLabel={formatSessionDuration(totalSeconds)}
+        dayStreak={Math.max(1, progress.streak || 1)}
+        completedExercises={completedIds.length}
+        totalExercises={session.exercises.length}
+      />
+    </div>
+  );
+}
+
+function SessionCompleteModal({
+  open,
+  onClose,
+  onViewProgress,
+  onBackToDashboard,
+  timeTrainedLabel,
+  dayStreak,
+  completedExercises,
+  totalExercises
+}: {
+  open: boolean;
+  onClose: () => void;
+  onViewProgress: () => void;
+  onBackToDashboard: () => void;
+  timeTrainedLabel: string;
+  dayStreak: number;
+  completedExercises: number;
+  totalExercises: number;
+}) {
+  if (!open) return null;
+
+  const confetti = [
+    "left-[9%] top-[16%] rotate-[-25deg] bg-cyan-400",
+    "left-[18%] top-[9%] rotate-[28deg] bg-amber-300",
+    "left-[28%] top-[18%] rotate-[47deg] bg-violet-500",
+    "left-[42%] top-[10%] rotate-[-35deg] bg-blue-400",
+    "right-[34%] top-[13%] rotate-[24deg] bg-amber-300",
+    "right-[22%] top-[20%] rotate-[-28deg] bg-cyan-400",
+    "right-[12%] top-[12%] rotate-[38deg] bg-emerald-400",
+    "right-[9%] top-[33%] rotate-[-20deg] bg-violet-500",
+    "left-[12%] top-[35%] rotate-[25deg] bg-blue-500",
+    "right-[24%] top-[36%] rotate-[40deg] bg-blue-400"
+  ];
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-[#020c1b]/70 px-4 py-8 backdrop-blur-md" role="dialog" aria-modal="true" aria-labelledby="session-complete-title">
+      <div className="relative w-full max-w-[720px] overflow-hidden rounded-[28px] border border-blue-300/20 bg-[radial-gradient(circle_at_50%_0%,rgba(28,118,255,0.34),transparent_36%),linear-gradient(180deg,#061b36_0%,#031024_100%)] p-6 text-white shadow-[0_30px_90px_rgba(2,12,27,0.55)] md:p-10">
+        <div className="pointer-events-none absolute inset-0 opacity-90">
+          <div className="absolute left-1/2 top-4 h-52 w-52 -translate-x-1/2 rounded-full bg-electric-600/25 blur-3xl" />
+          {confetti.map((className, index) => (
+            <span className={cn("absolute h-2.5 w-1.5 rounded-full", className)} key={index} />
+          ))}
+        </div>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-5 top-5 z-10 grid h-10 w-10 place-items-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-300"
+          aria-label="Close session complete modal"
+        >
+          <X className="h-6 w-6" />
+        </button>
+
+        <div className="relative z-10 flex flex-col items-center text-center">
+          <div className="relative grid h-28 w-28 place-items-center rounded-full bg-blue-500/15 shadow-[0_0_70px_rgba(23,105,246,0.9)]">
+            <div className="absolute inset-[-18px] rounded-full border border-cyan-300/20" />
+            <div className="grid h-20 w-20 place-items-center rounded-full border-[7px] border-cyan-300 bg-[#061b36]">
+              <Check className="h-12 w-12 text-emerald-400" strokeWidth={4} />
+            </div>
+          </div>
+
+          <h2 id="session-complete-title" className="mt-8 text-4xl font-black tracking-tight text-white md:text-5xl">Session Complete!</h2>
+          <p className="mt-3 text-lg font-medium text-slate-300 md:text-xl">Great job! You showed up for your voice.</p>
+
+          <div className="mt-8 grid w-full gap-4 md:grid-cols-3">
+            <SessionCompleteStat icon={<Clock className="h-8 w-8 text-emerald-400" />} label="Time Trained" value={timeTrainedLabel} />
+            <SessionCompleteStat icon={<Flame className="h-8 w-8 text-amber-300" />} label="Day Streak" value={`${dayStreak} ${dayStreak === 1 ? "day" : "days"}`} />
+            <SessionCompleteStat icon={<Star className="h-8 w-8 fill-blue-950 text-blue-400" />} label="Exercises Completed" value={`${completedExercises} / ${totalExercises}`} />
+          </div>
+
+          <div className="mt-5 flex w-full items-center gap-5 rounded-2xl border border-white/8 bg-white/7 px-6 py-5 text-left">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-blue-500/15 text-violet-300">
+              <Heart className="h-8 w-8 fill-violet-500 text-blue-400" />
+            </span>
+            <div>
+              <h3 className="text-lg font-black text-white">Consistency is Power</h3>
+              <p className="mt-1 text-sm leading-6 text-slate-300 md:text-base">Every minute you train, your voice gets stronger.</p>
+              <p className="text-sm leading-6 text-slate-300 md:text-base">See you in the next session!</p>
+            </div>
+          </div>
+
+          <div className="mt-7 grid w-full gap-4 md:grid-cols-2">
+            <button
+              type="button"
+              onClick={onViewProgress}
+              className="inline-flex h-16 items-center justify-center gap-3 rounded-xl border border-white/18 bg-transparent px-6 text-lg font-black text-white transition hover:bg-white/8 focus:outline-none focus:ring-2 focus:ring-cyan-300"
+            >
+              <BarChart3 className="h-6 w-6 text-slate-300" />
+              View Progress
+            </button>
+            <button
+              type="button"
+              onClick={onBackToDashboard}
+              className="inline-flex h-16 items-center justify-center gap-3 rounded-xl bg-electric-600 px-6 text-lg font-black text-white shadow-[0_18px_35px_rgba(23,105,246,0.35)] transition hover:bg-electric-700 focus:outline-none focus:ring-2 focus:ring-cyan-300"
+            >
+              <ArrowRight className="h-6 w-6" />
+              Back to Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SessionCompleteStat({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-white/8 bg-white/7 px-4 py-5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+      <div className="mx-auto grid h-12 w-12 place-items-center">{icon}</div>
+      <p className="mt-3 text-sm font-medium text-slate-300">{label}</p>
+      <p className="mt-2 text-2xl font-black text-white">{value}</p>
     </div>
   );
 }
@@ -892,50 +1069,6 @@ function MobileInfoSection({
       </summary>
       <div className="px-4 pb-4 text-sm leading-7 text-slate-600">{children}</div>
     </details>
-  );
-}
-
-function TrainingSidebar({
-  productType,
-  onRestartSetup,
-  onResetProgress
-}: {
-  productType: VoiceFlexProduct;
-  onRestartSetup: () => void;
-  onResetProgress: () => void;
-}) {
-  return (
-    <aside className="fixed inset-y-0 left-0 hidden w-[272px] bg-navy-950 px-5 py-8 text-white lg:flex lg:flex-col">
-      <div className="flex items-center gap-3 text-2xl font-black">
-        <span className="grid h-12 w-12 place-items-center rounded-2xl bg-white/10 text-cyan-300">
-          <Waves className="h-7 w-7" />
-        </span>
-        Voice Flex
-      </div>
-      <nav className="mt-10 space-y-2">
-        <div className="rounded-2xl px-4 py-4 font-bold text-white/75">🚀 Setup</div>
-        <div className="rounded-2xl bg-electric-600 px-4 py-4 font-black">🎙️ Sessions</div>
-        <Link className="block rounded-2xl px-4 py-4 font-bold text-white/75 hover:bg-white/10" href={`/train/${productType}/progress`}>
-          📊 Progress
-        </Link>
-        <div className="rounded-2xl px-4 py-4 font-bold text-white/75">⚙️ Settings</div>
-      </nav>
-      <div className="mt-auto rounded-3xl border border-white/10 bg-white/5 p-5 text-sm leading-6 text-white/75">
-        <p className="font-black text-white">{productType === "pro" ? "Voice Flex Pro" : "Voice Flex GO"}</p>
-        <p className="mt-2">No account required. Progress saved on this device.</p>
-        <div className="mt-4 grid gap-2">
-          <button className="rounded-xl border border-white/15 px-3 py-2 text-left text-xs font-black text-white/85 hover:bg-white/10" type="button" onClick={onRestartSetup}>
-            Restart setup
-          </button>
-          {SHOW_DEV_RESET ? (
-            <button className="rounded-xl border border-white/15 px-3 py-2 text-left text-xs font-black text-white/85 hover:bg-white/10" type="button" onClick={onResetProgress}>
-              <RotateCcw className="mr-2 inline h-3.5 w-3.5" />
-              Reset local progress
-            </button>
-          ) : null}
-        </div>
-      </div>
-    </aside>
   );
 }
 

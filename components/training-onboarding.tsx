@@ -25,6 +25,7 @@ export function TrainingOnboarding({
   onReset: () => void;
 }) {
   const config = trainingOnboardingConfigs[productType];
+  const trainingBase = `/train/${productType}`;
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const currentStep = config.steps[currentStepIndex];
   const currentNumber = currentStepIndex + 1;
@@ -75,10 +76,28 @@ export function TrainingOnboarding({
           Voice Flex
         </div>
         <nav className="mt-10 space-y-2">
-          <div className="rounded-2xl bg-electric-600 px-4 py-4 font-black">🚀 Setup</div>
-          <div className="rounded-2xl px-4 py-4 font-bold text-white/75">🎙️ Sessions</div>
-          <div className="rounded-2xl px-4 py-4 font-bold text-white/75">📊 Progress</div>
-          <div className="rounded-2xl px-4 py-4 font-bold text-white/75">⚙️ Settings</div>
+          <a href={trainingBase} className="block rounded-2xl bg-electric-600 px-4 py-4 font-black">
+            🚀 Setup
+          </a>
+          <button
+            type="button"
+            onClick={onComplete}
+            className="block w-full rounded-2xl px-4 py-4 text-left font-bold text-white/75 transition hover:bg-white/10"
+          >
+            🎙️ Sessions
+          </button>
+          <a
+            href={`${trainingBase}/progress`}
+            className="block rounded-2xl px-4 py-4 font-bold text-white/75 transition hover:bg-white/10"
+          >
+            📊 Progress
+          </a>
+          <a
+            href={`${trainingBase}/settings`}
+            className="block rounded-2xl px-4 py-4 font-bold text-white/75 transition hover:bg-white/10"
+          >
+            ⚙️ Settings
+          </a>
         </nav>
         <div className="mt-auto rounded-3xl border border-white/10 bg-white/5 p-5 text-sm leading-6 text-white/75">
           <p className="font-black text-white">No account required</p>
@@ -588,7 +607,7 @@ function MobileSetupMenu({
           <a href={`${trainingBase}/progress`} className="block rounded-2xl px-4 py-3 text-slate-700" onClick={onClose}>
             📊 Progress
           </a>
-          <a href="/settings" className="block rounded-2xl px-4 py-3 text-slate-700" onClick={onClose}>
+          <a href={`${trainingBase}/settings`} className="block rounded-2xl px-4 py-3 text-slate-700" onClick={onClose}>
             ⚙️ Settings
           </a>
         </nav>

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import {
-  calculatePracticeStreak,
+  calculateNextPracticeStreak,
   createVoiceFlexAdminClient,
   type DailyActivityRow,
   ensureOrderProgress,
@@ -78,7 +78,7 @@ export async function POST(request: Request) {
       return NextResponse.json(verified, { status: verified.status === "not_found" ? 404 : 403 });
     }
 
-    await ensureOrderProgress(supabase, verified.order.id, productType);
+    const progress = await ensureOrderProgress(supabase, verified.order.id, productType);
 
     const { data: existing, error: selectActivityError } = await supabase
       .from("voiceflex_daily_activity")
@@ -156,8 +156,12 @@ export async function POST(request: Request) {
     const totalSeconds = (allRows ?? []).reduce((sum, row) => sum + (row.seconds_practiced ?? 0), 0);
     const exercisesCompleted = (allRows ?? []).reduce((sum, row) => sum + (row.completed_exercise_ids ?? []).length, 0);
     const fullSessions = (allRows ?? []).filter((row) => row.full_session_completed).length;
-    const lastPracticeDate = practiceDates.sort().at(-1) ?? null;
-    const practiceStreak = calculatePracticeStreak(practiceDates);
+    const practiceStreak = calculateNextPracticeStreak(
+      progress.last_practice_date,
+      progress.practice_streak,
+      practiceDate,
+    );
+    const lastPracticeDate = practiceDate;
 
     const { error: updateProgressError } = await supabase
       .from("voiceflex_order_progress")

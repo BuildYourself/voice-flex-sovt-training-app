@@ -7,9 +7,33 @@ import {
   type LocalTrainingProgress
 } from "@/lib/training-progress";
 
+const VERIFIED_ORDER_NUMBER_KEY = "voiceflex_verified_order_number";
+
+type ProgressApiPayload = {
+  ok?: boolean;
+  message?: string;
+  currentDay?: number;
+  stats?: {
+    practiceStreak?: number;
+    totalMinutes?: number;
+    exercisesCompleted?: number;
+    fullSessions?: number;
+  };
+};
+
+type RemoteProgressStats = {
+  practiceStreak: number;
+  totalMinutes: number;
+  exercisesCompleted: number;
+  fullSessions: number;
+  currentDay: number;
+};
+
 export function useTrainingProgress(initialProduct?: VoiceFlexProduct) {
   const [activeProduct, setActiveProductState] = useState<VoiceFlexProduct | null>(initialProduct ?? null);
   const [progress, setProgress] = useState<LocalTrainingProgress | null>(null);
+  const [remoteStats, setRemoteStats] = useState<RemoteProgressStats | null>(null);
+  const [progressStatsError, setProgressStatsError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -83,12 +107,73 @@ export function useTrainingProgress(initialProduct?: VoiceFlexProduct) {
     return nextProgress;
   }, [activeProduct]);
 
+  const refreshProgressStats = useCallback(async () => {
+    if (typeof window === "undefined" || !activeProduct) return null;
+
+    const orderNumber = window.localStorage.getItem(VERIFIED_ORDER_NUMBER_KEY);
+    if (!orderNumber) {
+      setRemoteStats(null);
+      setProgressStatsError(null);
+      return null;
+    }
+
+    try {
+      const response = await fetch("/api/progress", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          orderNumber,
+          productType: activeProduct
+        })
+      });
+      const payload = (await response.json().catch(() => null)) as ProgressApiPayload | null;
+
+      if (!response.ok || !payload?.ok) {
+        setProgressStatsError(payload?.message ?? "Could not load progress stats.");
+        return null;
+      }
+
+      const nextStats: RemoteProgressStats = {
+        practiceStreak: Number(payload.stats?.practiceStreak ?? 0),
+        totalMinutes: Number(payload.stats?.totalMinutes ?? 0),
+        exercisesCompleted: Number(payload.stats?.exercisesCompleted ?? 0),
+        fullSessions: Number(payload.stats?.fullSessions ?? 0),
+        currentDay: Number(payload.currentDay ?? 1)
+      };
+
+      setRemoteStats(nextStats);
+      setProgressStatsError(null);
+      return nextStats;
+    } catch {
+      setProgressStatsError("Could not load progress stats.");
+      return null;
+    }
+  }, [activeProduct]);
+
+  useEffect(() => {
+    void refreshProgressStats();
+  }, [refreshProgressStats]);
+
+  const effectiveProgress =
+    progress && remoteStats
+      ? {
+          ...progress,
+          currentDay: remoteStats.currentDay,
+          streak: remoteStats.practiceStreak,
+          totalMinutes: remoteStats.totalMinutes
+        }
+      : progress;
+
   return {
     activeProduct,
-    progress,
+    progress: effectiveProgress,
     loading: !hydrated,
     hydrated,
+    progressStatsError,
     refresh,
+    refreshProgressStats,
     updateProgress,
     markOnboardingCompleted,
     resetProgress,

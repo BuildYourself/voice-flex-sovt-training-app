@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
 import {
-  calculatePracticeStreak,
   createVoiceFlexAdminClient,
   dateLabel,
   type DailyActivityRow,
@@ -93,10 +92,11 @@ export async function POST(request: Request) {
     const rows = activityRows ?? [];
     const activeRows = rows.filter((row) => (row.seconds_practiced ?? 0) > 0 || (row.completed_exercise_ids ?? []).length > 0);
     const practiceDates = activeRows.map((row) => row.activity_date);
-    const practiceStreak = calculatePracticeStreak(practiceDates);
-    const totalSeconds = rows.reduce((sum, row) => sum + (row.seconds_practiced ?? 0), 0);
-    const exercisesCompleted = rows.reduce((sum, row) => sum + (row.completed_exercise_ids ?? []).length, 0);
-    const fullSessions = rows.filter((row) => row.full_session_completed).length;
+    const practiceStreak = progress.practice_streak ?? 0;
+    const totalSeconds = progress.total_seconds ?? 0;
+    const exercisesCompleted = progress.exercises_completed_count ?? 0;
+    const fullSessions = progress.full_sessions_completed ?? 0;
+    const lastPracticeDate = progress.last_practice_date ?? null;
     const todayRow = rows.find((row) => row.activity_date === today);
     const todayCompletedIds = todayRow?.completed_exercise_ids ?? [];
     const todaySeconds = todayRow?.seconds_practiced ?? 0;
@@ -122,7 +122,7 @@ export async function POST(request: Request) {
         totalMinutes: secondsToMinutes(totalSeconds),
         exercisesCompleted,
         fullSessions,
-        lastPracticeDate: practiceDates.sort().at(-1) ?? null,
+        lastPracticeDate,
       },
       today: {
         activityDate: today,
