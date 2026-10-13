@@ -41,6 +41,13 @@ const productCards = [
     type: "pro",
     imageSrc: "/images/voiceflexpro.png",
   },
+  {
+    title: "Voice Flex",
+    badge: "CORE",
+    text: "Adjustable resistance with guided vocal training.",
+    type: "core",
+    imageSrc: null,
+  },
 ] as const;
 
 const benefitItems: { Icon: LucideIcon; title: string; text: string }[] = [
@@ -79,14 +86,18 @@ function ProductCard({ product }: { product: (typeof productCards)[number] }) {
   return (
     <div className="flex min-h-32 items-center gap-5 rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
       <div className="relative grid h-24 w-36 shrink-0 place-items-center overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 via-white to-blue-50/70">
-        <Image
-          src={product.imageSrc}
-          alt={`${product.title} ${product.badge}`}
-          fill
-          sizes="144px"
-          className="object-contain p-2.5 drop-shadow-[0_12px_18px_rgba(37,99,235,0.18)]"
-          priority={false}
-        />
+        {product.imageSrc ? (
+          <Image
+            src={product.imageSrc}
+            alt={`${product.title} ${product.badge}`}
+            fill
+            sizes="144px"
+            className="object-contain p-2.5 drop-shadow-[0_12px_18px_rgba(37,99,235,0.18)]"
+            priority={false}
+          />
+        ) : (
+          <div className="text-center text-2xl font-black tracking-tight text-slate-950">CORE</div>
+        )}
       </div>
       <div className="min-w-0 flex-1 text-left">
         <h3 className="flex items-center gap-2 text-xl font-black tracking-tight text-navy-950">
