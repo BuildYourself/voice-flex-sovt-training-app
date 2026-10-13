@@ -39,6 +39,16 @@ const benefitItems: { Icon: LucideIcon; title: string; text: string }[] = [
 ];
 
 function ProductVisual({ product }: { product: VerifiedOrderProduct }) {
+  if (product.productType === "core") {
+    return (
+      <div className="mx-auto my-5 grid h-44 w-full max-w-md place-items-center rounded-[1.75rem] bg-gradient-to-br from-slate-100 to-blue-50" aria-label="Voice Flex Core">
+        <div className="flex flex-col items-center gap-2">
+          <Waves className="h-16 w-16 text-slate-800" aria-hidden="true" />
+          <span className="text-xl font-black text-slate-900">Voice Flex CORE</span>
+        </div>
+      </div>
+    );
+  }
   const imageSrc = product.productType === "pro" ? "/images/voiceflexpro.png" : "/images/voiceflexgo.png";
 
   return (
@@ -65,7 +75,7 @@ export function OrderVerificationSuccess({
     product.productType === "pro"
       ? "Bottle + straw SOVT training with guided bubble massage setup."
       : "Lightweight, portable SOVT training wherever you are.";
-  const productBadge = product.productType === "go" ? "GO" : "Pro";
+  const productBadge = product.productType === "go" ? "GO" : product.productType === "core" ? "Core" : "Pro";
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#fbfcff] px-5 py-7 text-navy-950 md:px-8">
@@ -108,7 +118,7 @@ export function OrderVerificationSuccess({
             Your product
           </p>
           <h2 className="mt-3 flex items-center justify-center gap-3 text-4xl font-black tracking-tight text-navy-950">
-            {product.productType === "go" ? "Voice Flex" : product.productName}
+            {product.productType === "go" || product.productType === "core" ? "Voice Flex" : product.productName}
             <span
               className={`rounded-lg px-3 py-1 text-2xl font-black text-white ${
                 product.productType === "go" ? "bg-blue-600" : "bg-slate-950"
