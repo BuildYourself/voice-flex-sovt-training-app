@@ -30,7 +30,7 @@ export interface TrainingOnboardingConfig {
   infoCards: TrainingInfoCard[];
 }
 
-export const trainingOnboardingConfigs: Record<VoiceFlexProduct, TrainingOnboardingConfig> = {
+const baseTrainingOnboardingConfigs: Record<"pro" | "go", TrainingOnboardingConfig> = {
   pro: {
     productType: "pro",
     productName: "Voice Flex Pro",
@@ -182,6 +182,29 @@ export const trainingOnboardingConfigs: Record<VoiceFlexProduct, TrainingOnboard
       { Icon: Target, title: "Day 1 goal", items: ["Simple routine", "Steady tone", "Consistent practice"] }
     ]
   }
+};
+
+// Core deliberately reuses GO's exercise/setup methodology while retaining
+// an independent identity, onboarding and progress namespace.
+const goOnboarding = baseTrainingOnboardingConfigs.go;
+export const trainingOnboardingConfigs: Record<VoiceFlexProduct, TrainingOnboardingConfig> = {
+  ...baseTrainingOnboardingConfigs,
+  core: {
+    ...goOnboarding,
+    productType: "core",
+    productName: "Voice Flex Core",
+    title: "Let's set up your Voice Flex Core",
+    steps: goOnboarding.steps.map((step) => ({
+      ...step,
+      id: step.id === "setup-go" ? "setup-core" : step.id,
+      label: step.label.replaceAll("GO", "Core"),
+      title: step.title.replaceAll("Voice Flex GO", "Voice Flex Core"),
+      body: step.body.replaceAll("Voice Flex GO", "Voice Flex Core"),
+      visualTitle: step.visualTitle.replaceAll("GO", "Core"),
+      // Never show a GO product photograph to a Core customer.
+      imageSrc: undefined,
+    })),
+  },
 };
 
 export const onboardingVisualIcons: Record<TrainingOnboardingStep["visualKind"], LucideIcon> = {

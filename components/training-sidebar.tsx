@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Waves } from "lucide-react";
 
-import type { VoiceFlexProduct } from "@/lib/training-product";
+import { getProductName, type VoiceFlexProduct } from "@/lib/training-product";
 import { cn } from "@/lib/utils";
 
 type TrainingSidebarItem = "setup" | "sessions" | "progress" | "milestones" | "settings";
@@ -21,7 +21,7 @@ const TRAINING_NAV_ITEMS: Array<{
 ];
 
 function productLabel(productType: VoiceFlexProduct) {
-  return productType === "go" ? "Voice Flex GO" : "Voice Flex Pro";
+  return getProductName(productType);
 }
 
 export function TrainingSidebar({

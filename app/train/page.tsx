@@ -24,7 +24,7 @@ export default function TrainProductSelectionPage() {
               Choose the product from your box to open the correct setup and guided training.
             </p>
 
-            <div className="mt-9 grid gap-4 sm:grid-cols-2">
+            <div className="mt-9 grid gap-4 sm:grid-cols-3">
               <Button asChild className="h-16 rounded-2xl text-base font-black">
                 <Link href="/train/pro">
                   Voice Flex Pro
@@ -34,6 +34,12 @@ export default function TrainProductSelectionPage() {
               <Button asChild variant="outline" className="h-16 rounded-2xl border-blue-200 text-base font-black text-electric-700">
                 <Link href="/train/go">
                   Voice Flex GO
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="h-16 rounded-2xl border-blue-200 text-base font-black text-electric-700">
+                <Link href="/train/core">
+                  Voice Flex Core
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>

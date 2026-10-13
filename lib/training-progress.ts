@@ -2,7 +2,8 @@ import { ACTIVE_PRODUCT_KEY, isVoiceFlexProduct, type VoiceFlexProduct } from "@
 
 export const TRAINING_PROGRESS_KEYS: Record<VoiceFlexProduct, string> = {
   pro: "voiceflex_progress_pro",
-  go: "voiceflex_progress_go"
+  go: "voiceflex_progress_go",
+  core: "voiceflex_progress_core"
 };
 
 export interface LocalTrainingProgress {
@@ -44,7 +45,7 @@ export function getDefaultTrainingProgress(productType: VoiceFlexProduct, now = 
 
   return {
     productType,
-    activeProgram: productType === "pro" ? "voiceflex_pro_21_day" : "voiceflex_go_21_day",
+    activeProgram: `voiceflex_${productType}_21_day`,
     onboardingCompleted: false,
     currentDay: 1,
     completedDays: [],
@@ -168,6 +169,7 @@ export function resetAllTrainingProgress() {
   if (!hasLocalStorage()) return;
   window.localStorage.removeItem(TRAINING_PROGRESS_KEYS.pro);
   window.localStorage.removeItem(TRAINING_PROGRESS_KEYS.go);
+  window.localStorage.removeItem(TRAINING_PROGRESS_KEYS.core);
 }
 
 export function markExerciseCompleted(productType: VoiceFlexProduct, dayKey: string, exerciseId: string): LocalTrainingProgress {

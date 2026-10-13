@@ -62,7 +62,7 @@ const softMmmDemo: TrainingDemoStep[] = [
   }
 ];
 
-export const trainingSessionConfigs: Record<VoiceFlexProduct, TrainingSessionConfig> = {
+const baseTrainingSessionConfigs: Record<"pro" | "go", TrainingSessionConfig> = {
   pro: {
     productType: "pro",
     title: "Today's Guided Session",
@@ -242,6 +242,23 @@ export const trainingSessionConfigs: Record<VoiceFlexProduct, TrainingSessionCon
       }
     ]
   }
+};
+
+export const trainingSessionConfigs: Record<VoiceFlexProduct, TrainingSessionConfig> = {
+  ...baseTrainingSessionConfigs,
+  core: {
+    ...baseTrainingSessionConfigs.go,
+    productType: "core",
+    // Core uses the same exercise sequence, piano and demonstration audio as GO.
+    exercises: baseTrainingSessionConfigs.go.exercises.map((exercise) => ({
+      ...exercise,
+      tool: exercise.tool?.replaceAll("Voice Flex GO", "Voice Flex Core"),
+      description: exercise.description.replaceAll("Voice Flex GO", "Voice Flex Core"),
+      whatToDoNow: exercise.whatToDoNow.replaceAll("Voice Flex GO", "Voice Flex Core"),
+      tips: [...exercise.tips],
+      avoid: [...exercise.avoid],
+    })),
+  },
 };
 
 export function getTrainingSessionConfig(productType: VoiceFlexProduct) {

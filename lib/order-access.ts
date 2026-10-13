@@ -1,4 +1,4 @@
-import type { VoiceFlexProduct } from "@/lib/training-product";
+import { isVoiceFlexProduct, type VoiceFlexProduct } from "@/lib/training-product";
 
 export type VerifiedOrderProduct = {
   orderAccessId: string;
@@ -52,9 +52,9 @@ function isVerifyOrderApiResponse(value: unknown): value is VerifyOrderApiRespon
       typeof response.orderAccessId === "string" &&
       typeof response.orderNumber === "string" &&
       typeof response.asin === "string" &&
-      (response.productType === "go" || response.productType === "pro") &&
+      isVoiceFlexProduct(response.productType) &&
       typeof response.productName === "string" &&
-      (response.trainingRoute === "/train/go" || response.trainingRoute === "/train/pro")
+      response.trainingRoute === `/train/${response.productType}`
     );
   }
 

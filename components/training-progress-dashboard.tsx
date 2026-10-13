@@ -21,7 +21,7 @@ import type { LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { TrainingSidebar } from "@/components/training-sidebar";
-import type { VoiceFlexProduct } from "@/lib/training-product";
+import { getProductName, type VoiceFlexProduct } from "@/lib/training-product";
 import {
   VoiceFlexBadge,
   VoiceFlexRocket,
@@ -107,7 +107,7 @@ function isProgressPayload(value: unknown): value is ProgressPayload {
 }
 
 function productLabel(productType: VoiceFlexProduct) {
-  return productType === "go" ? "Voice Flex GO" : "Voice Flex Pro";
+  return getProductName(productType);
 }
 
 function getMonthDays(month: string) {

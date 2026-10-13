@@ -4,7 +4,7 @@ import type { VoiceFlexProduct } from "@/lib/training-product";
 
 export type ProductMatch = {
   productType: VoiceFlexProduct;
-  productName: "Voice Flex GO" | "Voice Flex Pro";
+  productName: "Voice Flex GO" | "Voice Flex Pro" | "Voice Flex Core";
   trainingRoute: `/train/${VoiceFlexProduct}`;
 };
 
@@ -63,11 +63,16 @@ export function normalizeAsin(value: string | null | undefined) {
   return (value ?? "").trim().toUpperCase();
 }
 
+const CORE_ASINS = new Set(["B0HFRD6FF4", "B0HFRJBX5L"]);
+
 export function getProductMatch(
   asin: string,
   env: Pick<ServerEnvironment, "goAsin" | "proAsin">,
 ): ProductMatch | null {
-  if (asin === env.goAsin) {
+  const normalizedAsin = normalizeAsin(asin);
+  if (!normalizedAsin) return null;
+  if (CORE_ASINS.has(normalizedAsin)) return { productType: "core", productName: "Voice Flex Core", trainingRoute: "/train/core" };
+  if (normalizedAsin === normalizeAsin(env.goAsin)) {
     return {
       productType: "go",
       productName: "Voice Flex GO",
@@ -75,7 +80,7 @@ export function getProductMatch(
     };
   }
 
-  if (asin === env.proAsin) {
+  if (normalizedAsin === normalizeAsin(env.proAsin)) {
     return {
       productType: "pro",
       productName: "Voice Flex Pro",

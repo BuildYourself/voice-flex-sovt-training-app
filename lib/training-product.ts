@@ -1,9 +1,9 @@
 export const ACTIVE_PRODUCT_KEY = "voiceflex_active_product";
 
-export type VoiceFlexProduct = "pro" | "go";
+export type VoiceFlexProduct = "pro" | "go" | "core";
 
 export function isVoiceFlexProduct(value: unknown): value is VoiceFlexProduct {
-  return value === "pro" || value === "go";
+  return value === "pro" || value === "go" || value === "core";
 }
 
 export function getActiveProduct(): VoiceFlexProduct | null {
@@ -24,4 +24,8 @@ export function clearActiveProduct() {
 
 export function isTrainingRoute(pathname: string) {
   return pathname === "/train" || pathname.startsWith("/train/");
+}
+
+export function getProductName(product: VoiceFlexProduct) {
+  return { pro: "Voice Flex Pro", go: "Voice Flex GO", core: "Voice Flex Core" }[product];
 }
