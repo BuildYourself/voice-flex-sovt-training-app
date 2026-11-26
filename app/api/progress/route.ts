@@ -37,7 +37,7 @@ type ProgressRequest = {
 const ERROR_RESPONSE = {
   ok: false,
   status: "server_error",
-  message: "We couldn’t load your progress right now. Please try again later.",
+  message: "We couldn't load your progress right now. Please try again later.",
 } as const;
 
 function monthKey(dateString: string) {
@@ -236,7 +236,7 @@ export async function POST(request: Request) {
           ? "Routine completed"
           : `${row.completed_exercise_ids?.length ?? 0} exercises completed`,
         secondsPracticed: row.seconds_practiced ?? 0,
-        displayDuration: row.seconds_practiced ? secondsToClock(row.seconds_practiced) : "—",
+        displayDuration: row.seconds_practiced ? secondsToClock(row.seconds_practiced) : "-",
         status: row.full_session_completed ? "full" : "partial",
       })),
     });

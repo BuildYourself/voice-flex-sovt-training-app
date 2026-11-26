@@ -72,7 +72,7 @@ export type DailyActivityRow = {
 export const SERVER_ERROR_RESPONSE = {
   ok: false,
   status: "server_error",
-  message: "We couldn’t verify your order right now. Please try again later.",
+  message: "We couldn't verify your order right now. Please try again later.",
 } as const;
 
 export function normalizeAsin(value: string | null | undefined) {
@@ -147,7 +147,7 @@ export function requestProfileSlot(value: unknown, seats: number) {
 export const PROFILE_NOT_FOUND = {
   ok: false,
   status: "profile_not_found",
-  message: "We couldn’t find this training profile on your order. Please enter your order number again.",
+  message: "We couldn't find this training profile on your order. Please enter your order number again.",
 } as const;
 
 export function normalizeProfileName(value: unknown) {
@@ -432,7 +432,7 @@ export async function resolveVerifiedOrder(
       ok: false,
       status: "not_found",
       message:
-        "We couldn’t verify this order yet. If you purchased recently, please wait up to 24 hours for your training access to update, then try again.",
+        "We couldn't verify this order yet. If you purchased recently, please wait up to 24 hours for your training access to update, then try again.",
     } as const;
   }
 
@@ -454,7 +454,7 @@ export async function resolveVerifiedOrder(
     return {
       ok: false,
       status: "unsupported_product",
-      message: "We found your order, but we couldn’t match it to a Voice Flex training path. Please contact support.",
+      message: "We found your order, but couldn't match it to a Voice Flex kit. Please send us a message from your order page on Amazon.",
     } as const;
   }
 

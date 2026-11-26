@@ -64,6 +64,17 @@ function isWebsiteOrder(productType: VoiceFlexProduct) {
   }
 }
 
+/** The ASIN this device's order was for, or null before the first order check. */
+export function getStoredOrderAsin(productType: VoiceFlexProduct): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const stored = window.localStorage.getItem(asinKey(productType));
+    return stored && ASIN_PATTERN.test(stored) ? stored : null;
+  } catch {
+    return null;
+  }
+}
+
 export function setOrderAsin(productType: VoiceFlexProduct, asin: string | null | undefined) {
   if (typeof window === "undefined") return;
   const value = (asin ?? "").trim().toUpperCase();

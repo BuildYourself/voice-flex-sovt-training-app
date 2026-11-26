@@ -1056,7 +1056,6 @@ function MobileTrainingSession({
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-18px_40px_rgba(15,23,42,0.12)] backdrop-blur md:hidden" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
         <div className="mx-auto flex max-w-md items-center justify-between gap-3">
           <div className="flex items-center gap-3 text-slate-700">
-            <span className="text-2xl text-electric-700">☰</span>
             <span className="font-black">
               Step {currentStepIndex + 1}/{steps.length}
             </span>

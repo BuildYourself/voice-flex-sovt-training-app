@@ -24,6 +24,8 @@ export interface ExerciseText {
 export interface ExerciseDefinition {
   id: string;
   title: string;
+  /** Name shown to GO owners when the usual one names a straw they don't have. */
+  goTitle?: string;
   skills: ExerciseSkill[];
   toolKind: ExerciseToolKind;
   requiresPiano?: boolean;
@@ -296,7 +298,7 @@ export const EXERCISES: Record<string, ExerciseDefinition> = {
     demoAudioSrc: "/audio/session/five-notes-demo.mp3",
     accompanimentAudioSrc: "/audio/session/five-notes-piano.mp3",
     text: (kit) => ({
-      description: `Sing five neighbouring notes up and back down through ${kit.toolNoun}. Keep every note clean and even.`,
+      description: `Sing five neighboring notes up and back down through ${kit.toolNoun}. Keep every note clean and even.`,
       whatToDoNow: "Move through the five notes slowly and evenly.",
       tips: ["Precise but relaxed", "Even airflow", "Clean note changes"],
       avoid: ["Rushing the notes", "Losing air between notes", "Letting the pitch wobble"],
@@ -335,6 +337,7 @@ export const EXERCISES: Record<string, ExerciseDefinition> = {
   "straw-counting": {
     id: "straw-counting",
     title: "Straw Counting",
+    goTitle: "Trainer Counting",
     skills: ["speaking"],
     toolKind: "resistance",
     demoSteps: thenWithoutDemo("Then without it", "voice-check", ["Count 1 to 10 out loud", "Keep the same easy buzz", "Normal speaking volume"]),
@@ -348,6 +351,7 @@ export const EXERCISES: Record<string, ExerciseDefinition> = {
   "straw-to-words": {
     id: "straw-to-words",
     title: "Straw to Words",
+    goTitle: "Trainer to Words",
     skills: ["speaking"],
     toolKind: "resistance",
     demoSteps: thenWithoutDemo("Then without it", "voice-check", ["Say the same words out loud", "Same easy, forward feel", "Slow and clear"]),
@@ -418,6 +422,11 @@ export function getExercise(id: string) {
 
 export function getExerciseSkills(id: string): ExerciseSkill[] {
   return EXERCISES[id]?.skills ?? [];
+}
+
+/** The exercise name for this kit: GO owners get "trainer" names instead of "straw" ones. */
+export function getExerciseTitle(exercise: ExerciseDefinition, kit: KitProfile) {
+  return kit.kit === "go" && exercise.goTitle ? exercise.goTitle : exercise.title;
 }
 
 export function getExerciseToolLabel(exercise: ExerciseDefinition, kit: KitProfile, level: ResistanceLevel) {

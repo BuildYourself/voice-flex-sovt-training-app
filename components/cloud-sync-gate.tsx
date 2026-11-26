@@ -1,9 +1,11 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { syncTrainingProgress, wasSyncedRecently } from "@/lib/cloud-sync";
 import { LOCAL_CHANGE_EVENT } from "@/lib/local-change";
+import { getTrainingIdentity } from "@/lib/training-identity";
 import type { VoiceFlexProduct } from "@/lib/training-product";
 
 /** Longest wait for the account before the page opens with what this device has. */
@@ -13,11 +15,18 @@ const SAVE_DELAY_MS = 1500;
 /**
  * Wraps the training pages: pulls the person's saved history from their account before the page
  * opens (so a new device shows their progress), and saves setting changes back a moment later.
+ * Training needs a verified order: a device without one for this product goes to the home page.
  */
 export function CloudSyncGate({ productType, children }: { productType: VoiceFlexProduct; children: ReactNode }) {
+  const router = useRouter();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    if (!getTrainingIdentity(productType)) {
+      router.replace("/");
+      return;
+    }
+
     let cancelled = false;
     let openTimer: number | undefined;
 
@@ -46,7 +55,7 @@ export function CloudSyncGate({ productType, children }: { productType: VoiceFle
       window.clearTimeout(saveTimer);
       window.removeEventListener(LOCAL_CHANGE_EVENT, onLocalChange);
     };
-  }, [productType]);
+  }, [productType, router]);
 
   if (!ready) {
     return (

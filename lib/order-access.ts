@@ -23,6 +23,7 @@ export type OrderProductChoice = {
   productType: VoiceFlexProduct;
   productName: string;
   units: number;
+  sourceAsin?: string;
 };
 
 /** A person already training on a multi-unit order. */
@@ -56,7 +57,7 @@ export type VerifyOrderResult =
   | { ok: false; status: string; message: string };
 
 const FALLBACK_ERROR =
-  "We couldn’t verify your order right now. Please try again later.";
+  "We couldn't verify your order right now. Please try again later.";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -71,6 +72,7 @@ function readProducts(value: unknown): OrderProductChoice[] {
       productType: item.productType as VoiceFlexProduct,
       productName: item.productName as string,
       units: Math.max(1, Number(item.units) || 1),
+      sourceAsin: typeof item.sourceAsin === "string" ? item.sourceAsin : undefined,
     }));
 }
 

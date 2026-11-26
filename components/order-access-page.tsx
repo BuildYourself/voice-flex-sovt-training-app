@@ -27,7 +27,7 @@ import {
   type VerifyOrderOptions,
   verifyOrderNumber,
 } from "@/lib/order-access";
-import { getCapColoursForOrder, getDefaultKit, setStoredKit } from "@/lib/kits";
+import { getCapColoursForOrder, getDefaultKit, getKitPhoto, setStoredKit } from "@/lib/kits";
 import { setOrderAsin, setOrderSource } from "@/lib/review-request";
 import { setTrainingIdentity } from "@/lib/training-identity";
 import { setActiveProduct, type VoiceFlexProduct } from "@/lib/training-product";
@@ -35,12 +35,6 @@ import { trainingProgressStore } from "@/lib/training-progress";
 
 const ORDER_ACCESS_ID_KEY = "voiceflex_order_access_id";
 const SETTINGS_KEY = "voiceflex_settings";
-
-const PRODUCT_IMAGES: Record<VoiceFlexProduct, string> = {
-  go: "/images/voiceflexgo.png",
-  pro: "/images/voiceflexpro-caps.webp",
-  core: "/images/voiceflexcore.webp",
-};
 
 /** Order holds two products, or 2+ units of one: ask before opening the training. */
 type OrderChoice =
@@ -436,7 +430,7 @@ function OrderChoicePanel({
                 className={optionClass}
               >
                 <span className="relative h-16 w-20 shrink-0 overflow-hidden rounded-xl bg-blue-50/60">
-                  <Image src={PRODUCT_IMAGES[product.productType]} alt="" fill sizes="80px" className="object-contain p-1.5" />
+                  <Image src={getKitPhoto(product.productType, null, product.sourceAsin)} alt="" fill sizes="80px" className="object-contain p-1.5" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-lg font-black text-navy-950">{product.productName}</span>

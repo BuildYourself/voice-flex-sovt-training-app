@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import { Activity, Clock, Info, Leaf, ShieldCheck, Sparkles, Volume1, Waves } from "lucide-react";
-import { CAP_NAMES, getDefaultKit, getKitProfile, type CapColours, type VoiceFlexKit } from "@/lib/kits";
+import { CAP_NAMES, getDefaultKit, getKitPhoto, getKitProfile, isBlueGoOrder, type CapColours, type VoiceFlexKit } from "@/lib/kits";
 import { getProductName, type VoiceFlexProduct } from "@/lib/training-product";
 
 export interface TrainingOnboardingStep {
@@ -14,6 +14,8 @@ export interface TrainingOnboardingStep {
   visualSubtitle: string;
   visualKind: "pro" | "go" | "sovt" | "safety" | "ready";
   imageSrc?: string;
+  /** "contain" for product photos (shown whole), otherwise the picture fills the frame. */
+  imageFit?: "cover" | "contain";
 }
 
 export interface TrainingInfoCard {
@@ -99,9 +101,12 @@ export function getTrainingOnboardingConfig(
   productType: VoiceFlexProduct,
   kit: VoiceFlexKit = getDefaultKit(productType),
   caps?: CapColours,
+  sourceAsin?: string | null,
 ): TrainingOnboardingConfig {
   const productName = getProductName(productType);
   const isGo = kit === "go";
+  // The staged GO pictures show the blue GO. Everyone else sees a photo of their own kit.
+  const blueGo = isGo && isBlueGoOrder(sourceAsin);
 
   return {
     productType,
@@ -119,7 +124,8 @@ export function getTrainingOnboardingConfig(
         visualTitle: productName,
         visualSubtitle: "Guided SOVT voice training",
         visualKind: isGo ? "go" : "pro",
-        imageSrc: isGo ? "/images/onboarding/1-welcome.png" : undefined,
+        imageSrc: blueGo ? "/images/onboarding/1-welcome.png" : getKitPhoto(productType, kit, sourceAsin, caps),
+        imageFit: blueGo ? "cover" : "contain",
       },
       {
         id: "sovt",
@@ -177,7 +183,7 @@ export function getTrainingOnboardingConfig(
         visualTitle: "Safe practice",
         visualSubtitle: "Easy airflow, no strain",
         visualKind: "safety",
-        imageSrc: isGo ? "/images/onboarding/4-safety.png" : undefined,
+        imageSrc: blueGo ? "/images/onboarding/4-safety.png" : undefined,
       },
     ],
     infoCards: [

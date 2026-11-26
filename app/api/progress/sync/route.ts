@@ -52,7 +52,7 @@ type SyncRequest = {
 const ERROR_RESPONSE = {
   ok: false,
   status: "server_error",
-  message: "We couldn’t sync your progress right now. Your training on this device still works.",
+  message: "We couldn't sync your progress right now. Your training on this device still works.",
 } as const;
 
 function isIsoDate(value: unknown): value is string {

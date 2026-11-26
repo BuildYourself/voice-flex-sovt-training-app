@@ -68,6 +68,7 @@ export async function POST(request: Request) {
       productType: entry.productType,
       productName: entry.productName,
       units: entry.units,
+      sourceAsin: entry.sourceAsin,
     }));
 
     // Two products in one order (e.g. Pro + GO): ask which one first.

@@ -32,7 +32,7 @@ type CompleteExerciseRequest = {
 const ERROR_RESPONSE = {
   ok: false,
   status: "server_error",
-  message: "We couldn’t save your progress right now. Your local session can continue.",
+  message: "We couldn't save your progress right now. Your local session can continue.",
 } as const;
 
 function toPositiveNumber(value: unknown) {

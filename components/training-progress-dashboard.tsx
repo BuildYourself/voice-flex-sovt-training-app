@@ -807,7 +807,7 @@ export function TrainingProgressDashboard({ productType }: { productType: VoiceF
         const payload = (await response.json()) as unknown;
 
         if (!response.ok || !isProgressPayload(payload)) {
-          const message = (payload as ProgressErrorPayload | null)?.message ?? "We couldn’t load your progress right now.";
+          const message = (payload as ProgressErrorPayload | null)?.message ?? "We couldn't load your progress right now.";
           throw new Error(message);
         }
 
@@ -818,7 +818,7 @@ export function TrainingProgressDashboard({ productType }: { productType: VoiceF
       } catch (loadError) {
         console.warn("[training-progress] Failed to load progress.", loadError);
         if (!cancelled) {
-          setError(loadError instanceof Error ? loadError.message : "We couldn’t load your progress right now.");
+          setError(loadError instanceof Error ? loadError.message : "We couldn't load your progress right now.");
         }
       } finally {
         if (!cancelled) {

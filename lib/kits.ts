@@ -155,6 +155,33 @@ export function getCapColoursForOrder(sourceAsin: string | null | undefined): Ca
   return BRIGHT_CAP_ASINS.has((sourceAsin ?? "").trim().toUpperCase()) ? "bright" : "mono";
 }
 
+/** GO comes in black (B0HDZCGCTG) and blue (B0HDZRZL8B, B0H299R3KN). */
+const BLACK_GO_ASINS = new Set(["B0HDZCGCTG"]);
+/** The original Pro straw set listing. */
+const PRO_STRAW_SET_ASIN = "B0FZVBL3JX";
+
+export function isBlueGoOrder(sourceAsin: string | null | undefined) {
+  return !BLACK_GO_ASINS.has((sourceAsin ?? "").trim().toUpperCase());
+}
+
+/**
+ * Photo of the kit this buyer ordered: right product, right colour. The ASIN decides; the cap colours
+ * stand in when the ASIN isn't on this device. Unknown orders get the black kit.
+ */
+export function getKitPhoto(
+  productType: VoiceFlexProduct,
+  kit?: VoiceFlexKit | null,
+  sourceAsin?: string | null,
+  caps?: CapColours,
+) {
+  const asin = (sourceAsin ?? "").trim().toUpperCase();
+  const light = BRIGHT_CAP_ASINS.has(asin) || caps === "bright";
+  if (productType === "go") return BLACK_GO_ASINS.has(asin) ? "/images/voiceflexgo-black.webp" : "/images/voiceflexgo.png";
+  if (productType === "core") return light ? "/images/voiceflexcore-silver.webp" : "/images/voiceflexcore.webp";
+  if (kit === "pro_classic" || (!kit && asin === PRO_STRAW_SET_ASIN)) return "/images/voiceflexpro.png";
+  return light ? "/images/voiceflexpro-white.webp" : "/images/voiceflexpro-caps.webp";
+}
+
 /**
  * The wording profile for a kit. Caps kits use the cap colours this buyer has: passed in, or read from
  * this device (set from the order). On the server there is no device, so the white/grey/black names are used,

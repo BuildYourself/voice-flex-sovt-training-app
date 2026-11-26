@@ -1,4 +1,4 @@
-import { getExercise, getExerciseToolLabel, type ExerciseSkill } from "@/lib/exercises";
+import { getExercise, getExerciseTitle, getExerciseToolLabel, type ExerciseSkill } from "@/lib/exercises";
 import { getKitProfile, type ResistanceLevel, type VoiceFlexKit } from "@/lib/kits";
 import type { VoiceFlexProduct } from "@/lib/training-product";
 import type { TrainingSessionConfig, TrainingSessionExercise } from "@/lib/training-sessions";
@@ -267,7 +267,7 @@ export function buildRoutineSession(id: RoutineId, kit: VoiceFlexKit, productTyp
     return [
       {
         id: exercise.id,
-        title: exercise.title,
+        title: getExerciseTitle(exercise, profile),
         durationSeconds: step.seconds,
         tool: getExerciseToolLabel(exercise, profile, step.level),
         description: step.note ? `${text.description} ${step.note}` : text.description,

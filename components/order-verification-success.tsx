@@ -13,6 +13,7 @@ import {
 
 import { ConfettiBackground } from "@/components/confetti-background";
 import type { VerifiedOrderProduct } from "@/lib/order-access";
+import { getKitPhoto } from "@/lib/kits";
 
 type OrderVerificationSuccessProps = {
   product: VerifiedOrderProduct;
@@ -39,15 +40,8 @@ const benefitItems: { Icon: LucideIcon; title: string; text: string }[] = [
 ];
 
 function ProductVisual({ product }: { product: VerifiedOrderProduct }) {
-  // Original Pro straw set buyers keep the photo of their own kit; caps set buyers see the caps set.
-  const imageSrc =
-    product.productType === "core"
-      ? "/images/voiceflexcore.webp"
-      : product.productType === "pro"
-        ? product.kit === "pro_classic"
-          ? "/images/voiceflexpro.png"
-          : "/images/voiceflexpro-caps.webp"
-        : "/images/voiceflexgo.png";
+  // A photo of the kit they ordered: straw set or caps set, black or light colours, black or blue GO.
+  const imageSrc = getKitPhoto(product.productType, product.kit, product.sourceAsin);
 
   return (
     <div className="relative mx-auto grid h-44 w-full max-w-md place-items-center overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-white via-blue-50/70 to-white">

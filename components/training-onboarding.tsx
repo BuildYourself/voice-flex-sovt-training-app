@@ -12,6 +12,7 @@ import {
   onboardingVisualIcons,
   type TrainingOnboardingConfig
 } from "@/lib/training-onboarding";
+import { getStoredOrderAsin } from "@/lib/review-request";
 import type { LocalTrainingProgress } from "@/lib/training-progress";
 import type { VoiceFlexProduct } from "@/lib/training-product";
 
@@ -34,7 +35,7 @@ export function TrainingOnboarding({
   onReset: () => void;
 }) {
   const config = useMemo(
-    () => getTrainingOnboardingConfig(productType, kit ?? undefined, caps),
+    () => getTrainingOnboardingConfig(productType, kit ?? undefined, caps, getStoredOrderAsin(productType)),
     [productType, kit, caps]
   );
   const trainingBase = `/train/${productType}`;
@@ -184,7 +185,11 @@ export function TrainingOnboarding({
                               <img
                                 src={currentStep.imageSrc}
                                 alt={currentStep.visualTitle}
-                                className="h-full min-h-[340px] w-full object-cover"
+                                className={
+                                  currentStep.imageFit === "contain"
+                                    ? "absolute inset-0 h-full w-full object-contain p-8"
+                                    : "h-full min-h-[340px] w-full object-cover"
+                                }
                               />
                               <div className="absolute inset-0 bg-gradient-to-t from-white/10 via-transparent to-white/5" />
                             </>
@@ -391,7 +396,7 @@ function MobileTrainingOnboarding({
                 <img
                   src={currentStep.imageSrc}
                   alt={currentStep.visualTitle}
-                  className="h-[230px] w-full bg-white object-contain"
+                  className={cn("h-[230px] w-full object-contain", currentStep.imageFit === "contain" ? "p-4" : "bg-white")}
                 />
               ) : (
                 <div className="flex min-h-[230px] flex-col items-center justify-center p-7 text-center">
