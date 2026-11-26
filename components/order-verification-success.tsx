@@ -39,17 +39,15 @@ const benefitItems: { Icon: LucideIcon; title: string; text: string }[] = [
 ];
 
 function ProductVisual({ product }: { product: VerifiedOrderProduct }) {
-  if (product.productType === "core") {
-    return (
-      <div className="mx-auto my-5 grid h-44 w-full max-w-md place-items-center rounded-[1.75rem] bg-gradient-to-br from-slate-100 to-blue-50" aria-label="Voice Flex Core">
-        <div className="flex flex-col items-center gap-2">
-          <Waves className="h-16 w-16 text-slate-800" aria-hidden="true" />
-          <span className="text-xl font-black text-slate-900">Voice Flex CORE</span>
-        </div>
-      </div>
-    );
-  }
-  const imageSrc = product.productType === "pro" ? "/images/voiceflexpro.png" : "/images/voiceflexgo.png";
+  // Original Pro straw set buyers keep the photo of their own kit; caps set buyers see the caps set.
+  const imageSrc =
+    product.productType === "core"
+      ? "/images/voiceflexcore.webp"
+      : product.productType === "pro"
+        ? product.kit === "pro_classic"
+          ? "/images/voiceflexpro.png"
+          : "/images/voiceflexpro-caps.webp"
+        : "/images/voiceflexgo.png";
 
   return (
     <div className="relative mx-auto grid h-44 w-full max-w-md place-items-center overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-white via-blue-50/70 to-white">
@@ -73,8 +71,12 @@ export function OrderVerificationSuccess({
 }: OrderVerificationSuccessProps) {
   const productDescription =
     product.productType === "pro"
-      ? "Bottle + straw SOVT training with guided bubble massage setup."
-      : "Lightweight, portable SOVT training wherever you are.";
+      ? product.kit === "pro_classic"
+        ? "Bottle + straw SOVT training with guided bubble massage setup."
+        : "Straws, resistance caps and a water cup for guided SOVT training."
+      : product.productType === "core"
+        ? "Straws and resistance caps for guided SOVT training, no water needed."
+        : "Lightweight, portable SOVT training wherever you are.";
   const productBadge = product.productType === "go" ? "GO" : product.productType === "core" ? "Core" : "Pro";
 
   return (
@@ -118,7 +120,7 @@ export function OrderVerificationSuccess({
             Your product
           </p>
           <h2 className="mt-3 flex items-center justify-center gap-3 text-4xl font-black tracking-tight text-navy-950">
-            {product.productType === "go" || product.productType === "core" ? "Voice Flex" : product.productName}
+            Voice Flex
             <span
               className={`rounded-lg px-3 py-1 text-2xl font-black text-white ${
                 product.productType === "go" ? "bg-blue-600" : "bg-slate-950"

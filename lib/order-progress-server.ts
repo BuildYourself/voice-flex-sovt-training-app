@@ -65,6 +65,14 @@ export function normalizeAsin(value: string | null | undefined) {
   return (value ?? "").trim().toUpperCase();
 }
 
+/**
+ * Order numbers are stored upper-case with no spaces. Website (Shopify) orders are stored
+ * as "SY1006", so "#SY1006", "sy 1006" and "SY1006" all find the same row.
+ */
+export function normalizeOrderNumber(value: string | null | undefined) {
+  return (value ?? "").trim().replace(/^#/, "").replace(/\s+/g, "").toUpperCase();
+}
+
 const CORE_ASINS = new Set(["B0HFRD6FF4", "B0HFRJBX5L"]);
 
 export function getProductMatch(
@@ -248,7 +256,7 @@ export async function resolveVerifiedOrder(
   const { data, error } = await supabase
     .from("amazon_order_access")
     .select("id, amazon_order_number, asin, source_asin, shipped")
-    .eq("amazon_order_number", orderNumber)
+    .eq("amazon_order_number", normalizeOrderNumber(orderNumber))
     .maybeSingle<AmazonOrderAccessRow>();
 
   if (error) {

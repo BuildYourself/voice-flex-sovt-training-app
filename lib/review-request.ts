@@ -33,6 +33,36 @@ function stateKey(productType: VoiceFlexProduct) {
   return `voiceflex_review_request_${productType}`;
 }
 
+/** Website (Shopify) order numbers look like SY1006. */
+const WEBSITE_ORDER_PATTERN = /^#?\s*SY\s*\d+$/i;
+
+function sourceKey(productType: VoiceFlexProduct) {
+  return `voiceflex_order_source_${productType}`;
+}
+
+/**
+ * Website buyers didn't order on Amazon, so they never get the Amazon review ask.
+ * Called on every order check, so an Amazon order verified later on the same device turns it back on.
+ */
+export function setOrderSource(productType: VoiceFlexProduct, orderNumber: string | null | undefined) {
+  if (typeof window === "undefined") return;
+  const source = WEBSITE_ORDER_PATTERN.test((orderNumber ?? "").trim()) ? "website" : "amazon";
+  try {
+    window.localStorage.setItem(sourceKey(productType), source);
+  } catch {
+    // Storage blocked: treated as an Amazon order.
+  }
+}
+
+function isWebsiteOrder(productType: VoiceFlexProduct) {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(sourceKey(productType)) === "website";
+  } catch {
+    return false;
+  }
+}
+
 export function setOrderAsin(productType: VoiceFlexProduct, asin: string | null | undefined) {
   if (typeof window === "undefined") return;
   const value = (asin ?? "").trim().toUpperCase();
@@ -77,6 +107,7 @@ function writeState(productType: VoiceFlexProduct, state: ReviewState) {
 }
 
 export function shouldShowReviewRequest(productType: VoiceFlexProduct, now = new Date()) {
+  if (isWebsiteOrder(productType)) return false;
   const state = readState(productType);
   if (state.clickedAt) return false;
   if (state.snoozedAt) {

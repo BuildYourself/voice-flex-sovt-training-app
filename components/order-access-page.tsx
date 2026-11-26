@@ -21,7 +21,7 @@ import {
   verifyOrderNumber,
 } from "@/lib/order-access";
 import { getDefaultKit, setStoredKit } from "@/lib/kits";
-import { setOrderAsin } from "@/lib/review-request";
+import { setOrderAsin, setOrderSource } from "@/lib/review-request";
 import { setActiveProduct } from "@/lib/training-product";
 import { trainingProgressStore } from "@/lib/training-progress";
 
@@ -41,7 +41,7 @@ const productCards = [
     badge: "Pro",
     text: "Complete kit for serious progress.",
     type: "pro",
-    imageSrc: "/images/voiceflexpro.png",
+    imageSrc: "/images/voiceflexpro-caps.webp",
   },
   {
     title: "Voice Flex",
@@ -153,6 +153,7 @@ export function OrderAccessPage() {
     setActiveProduct(product.productType);
     setStoredKit(product.productType, product.kit ?? getDefaultKit(product.productType), "order");
     setOrderAsin(product.productType, product.sourceAsin);
+    setOrderSource(product.productType, product.orderNumber);
     window.localStorage.setItem(VERIFIED_ORDER_NUMBER_KEY, product.orderNumber ?? "");
     window.localStorage.setItem(ORDER_ACCESS_ID_KEY, product.orderAccessId);
     trainingProgressStore.getOrCreateProgress(product.productType);
@@ -256,7 +257,8 @@ export function OrderAccessPage() {
           {showHelp ? (
             <p className="mt-3 rounded-2xl bg-blue-50 px-4 py-3 text-center text-sm leading-6 text-slate-600">
               You can find it in your Amazon order confirmation email or in
-              Your Orders on Amazon.
+              Your Orders on Amazon. Bought on our website? Use the order
+              number from your confirmation email, for example #SY1006.
             </p>
           ) : null}
         </section>
