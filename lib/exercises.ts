@@ -84,7 +84,8 @@ const PAT = "/images/patterns";
 function setupImage(kit: KitProfile, level: ResistanceLevel) {
   if (kit.kit === "go") return `${IMG}/setup-go.webp`;
   if (kit.kit === "pro_classic" || level === "lightest") return `${IMG}/setup-straw.webp`;
-  return `${IMG}/setup-cap.webp`;
+  // Light kits ship yellow, orange and red caps: show a yellow cap.
+  return `${IMG}/${kit.capColours === "bright" ? "setup-cap-bright" : "setup-cap"}.webp`;
 }
 
 function setupStep(kit: KitProfile, level: ResistanceLevel): TrainingDemoStep {

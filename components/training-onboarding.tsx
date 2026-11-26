@@ -5,7 +5,7 @@ import { ArrowRight, Check, Menu, RotateCcw, Waves, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import type { VoiceFlexKit } from "@/lib/kits";
+import type { CapColours, VoiceFlexKit } from "@/lib/kits";
 import {
   getTrainingOnboardingConfig,
   onboardingCalloutIcon,
@@ -21,17 +21,22 @@ type TrainingOnboardingInfoCard = TrainingOnboardingConfig["infoCards"][number];
 export function TrainingOnboarding({
   productType,
   kit,
+  caps,
   progress,
   onComplete,
   onReset
 }: {
   productType: VoiceFlexProduct;
   kit?: VoiceFlexKit | null;
+  caps?: CapColours;
   progress: LocalTrainingProgress;
   onComplete: () => void;
   onReset: () => void;
 }) {
-  const config = useMemo(() => getTrainingOnboardingConfig(productType, kit ?? undefined), [productType, kit]);
+  const config = useMemo(
+    () => getTrainingOnboardingConfig(productType, kit ?? undefined, caps),
+    [productType, kit, caps]
+  );
   const trainingBase = `/train/${productType}`;
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const currentStep = config.steps[currentStepIndex];

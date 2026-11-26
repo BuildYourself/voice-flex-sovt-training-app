@@ -27,7 +27,7 @@ import {
   type VerifyOrderOptions,
   verifyOrderNumber,
 } from "@/lib/order-access";
-import { getDefaultKit, setStoredKit } from "@/lib/kits";
+import { getCapColoursForOrder, getDefaultKit, setStoredKit } from "@/lib/kits";
 import { setOrderAsin, setOrderSource } from "@/lib/review-request";
 import { setTrainingIdentity } from "@/lib/training-identity";
 import { setActiveProduct, type VoiceFlexProduct } from "@/lib/training-product";
@@ -221,7 +221,7 @@ export function OrderAccessPage() {
     window.localStorage.setItem(ORDER_ACCESS_ID_KEY, product.orderAccessId);
     // Bring in this person's saved history first, so their own choices win over the order defaults.
     await syncTrainingProgress(productType, { timeoutMs: 3500 });
-    setStoredKit(productType, product.kit ?? getDefaultKit(productType), "order");
+    setStoredKit(productType, product.kit ?? getDefaultKit(productType), "order", getCapColoursForOrder(product.sourceAsin));
     setOrderAsin(productType, product.sourceAsin);
     setOrderSource(productType, product.orderNumber);
     if (product.profileName) applyNameAsDisplayName(product.profileName);

@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import { Activity, Clock, Info, Leaf, ShieldCheck, Sparkles, Volume1, Waves } from "lucide-react";
-import { getDefaultKit, getKitProfile, type VoiceFlexKit } from "@/lib/kits";
+import { CAP_NAMES, getDefaultKit, getKitProfile, type CapColours, type VoiceFlexKit } from "@/lib/kits";
 import { getProductName, type VoiceFlexProduct } from "@/lib/training-product";
 
 export interface TrainingOnboardingStep {
@@ -38,8 +38,8 @@ export interface TrainingOnboardingConfig {
  * VOICE-FLEX-APP/WELCOME-COPY.md on P's drive. No medical claims here.
  */
 
-function kitStep(kit: VoiceFlexKit): TrainingOnboardingStep {
-  const profile = getKitProfile(kit);
+function kitStep(kit: VoiceFlexKit, caps?: CapColours): TrainingOnboardingStep {
+  const profile = getKitProfile(kit, caps);
   const base = {
     id: "your-kit",
     label: "Your kit",
@@ -65,17 +65,19 @@ function kitStep(kit: VoiceFlexKit): TrainingOnboardingStep {
   }
 
   if (kit === "pro" || kit === "core") {
+    const names = CAP_NAMES[profile.capColours ?? "mono"];
+    const cap = (name: string) => name.charAt(0).toUpperCase() + name.slice(1);
     return {
       ...base,
       title: kit === "pro" ? "Your straws, caps and water cup" : "Your straws and caps",
       body: "The caps go on the end of the metal straw. Each one has a smaller hole, so it holds the air back a bit more.",
       bullets: [
         "No cap: the lightest",
-        "White cap: light. Grey cap: medium. Black cap: strong",
+        `${cap(names.light)} cap: light. ${cap(names.medium)} cap: medium. ${cap(names.strong)} cap: strong`,
         ...(kit === "pro" ? ["Thick silicone straw in the water cup: for bubbling"] : []),
-        "Start with no cap or the white cap",
+        `Start with no cap or the ${names.light} cap`,
       ],
-      imageSrc: "/images/exercises/setup-cap.webp",
+      imageSrc: `/images/exercises/${profile.capColours === "bright" ? "setup-cap-bright" : "setup-cap"}.webp`,
     };
   }
 
@@ -96,6 +98,7 @@ function kitStep(kit: VoiceFlexKit): TrainingOnboardingStep {
 export function getTrainingOnboardingConfig(
   productType: VoiceFlexProduct,
   kit: VoiceFlexKit = getDefaultKit(productType),
+  caps?: CapColours,
 ): TrainingOnboardingConfig {
   const productName = getProductName(productType);
   const isGo = kit === "go";
@@ -141,7 +144,7 @@ export function getTrainingOnboardingConfig(
         visualSubtitle: "Air slows at the lips, the voice works easier",
         visualKind: "sovt",
       },
-      kitStep(kit),
+      kitStep(kit, caps),
       {
         id: "get-the-most",
         label: "Get the most",

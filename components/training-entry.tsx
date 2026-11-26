@@ -18,7 +18,7 @@ export function TrainingEntry({
   showSetup?: boolean;
 }) {
   const router = useRouter();
-  const { progress, kit, loading, markOnboardingCompleted, resetProgress } = useTrainingProgress(product);
+  const { progress, kit, caps, loading, markOnboardingCompleted, resetProgress } = useTrainingProgress(product);
 
   if (loading || !progress) {
     return (
@@ -33,6 +33,7 @@ export function TrainingEntry({
       <TrainingOnboarding
         productType={product}
         kit={kit}
+        caps={caps}
         progress={progress}
         onComplete={() => {
           markOnboardingCompleted();

@@ -66,6 +66,7 @@ export function TrainingSession({ productType, routineId = "daily" }: { productT
   const {
     progress,
     kit,
+    caps,
     loading,
     markExerciseCompleted,
     addTrainingMinutes,
@@ -74,7 +75,9 @@ export function TrainingSession({ productType, routineId = "daily" }: { productT
   } = useTrainingProgress(productType);
   const session = useMemo(
     () => getTrainingSessionConfig(productType, kit ?? getDefaultKit(productType), routineId),
-    [productType, kit, routineId]
+    // caps: the exercise text names the cap colours, which arrive with the order.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [productType, kit, caps, routineId]
   );
   // The routine slot is saved as program_day. Completion is kept per date and
   // routine, so tomorrow (or another routine) starts fresh.
