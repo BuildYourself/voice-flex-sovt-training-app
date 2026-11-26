@@ -29,12 +29,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ExerciseGuidePanel } from "@/components/exercise-guide-panel";
+import { ReviewRequest } from "@/components/review-request";
 import { TrainingSidebar } from "@/components/training-sidebar";
 import { useTrainingProgress } from "@/hooks/use-training-progress";
-import { getMilestoneOrderAccessId, recordLocalExerciseCompletion, recordLocalFullSessionCompletion } from "@/lib/local-milestones";
+import { getMilestoneOrderAccessId, loadLocalMilestones, recordLocalExerciseCompletion, recordLocalFullSessionCompletion } from "@/lib/local-milestones";
 import { cn } from "@/lib/utils";
 import { getVoiceRange, GuideTonePlayer, setVoiceRange as storeVoiceRange, type VoiceRange } from "@/lib/guide-tones";
 import { getDefaultKit } from "@/lib/kits";
+import { REVIEW_MODAL_AFTER_ROUTINES } from "@/lib/review-request";
 import type { RoutineId } from "@/lib/routines";
 import type { VoiceFlexProduct } from "@/lib/training-product";
 import { getRoutineDayKey } from "@/lib/training-progress";
@@ -687,6 +689,11 @@ export function TrainingSession({ productType, routineId = "daily" }: { productT
         dayStreak={Math.max(1, progress.streak || 1)}
         completedExercises={completedIds.length}
         totalExercises={session.exercises.length}
+        reviewSlot={
+          sessionCompleteModalOpen && loadLocalMilestones(productType).totals.fullSessionsCompleted >= REVIEW_MODAL_AFTER_ROUTINES ? (
+            <ReviewRequest productType={productType} variant="modal" />
+          ) : null
+        }
       />
     </div>
   );
@@ -700,8 +707,10 @@ function SessionCompleteModal({
   timeTrainedLabel,
   dayStreak,
   completedExercises,
-  totalExercises
+  totalExercises,
+  reviewSlot
 }: {
+  reviewSlot?: ReactNode;
   open: boolean;
   onClose: () => void;
   onViewProgress: () => void;
@@ -727,7 +736,7 @@ function SessionCompleteModal({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-[#020c1b]/70 px-4 py-8 backdrop-blur-md" role="dialog" aria-modal="true" aria-labelledby="session-complete-title">
+    <div className="fixed inset-0 z-50 grid items-start justify-items-center overflow-y-auto bg-[#020c1b]/70 px-4 py-8 backdrop-blur-md md:items-center" role="dialog" aria-modal="true" aria-labelledby="session-complete-title">
       <div className="relative w-full max-w-[720px] overflow-hidden rounded-[28px] border border-blue-300/20 bg-[radial-gradient(circle_at_50%_0%,rgba(28,118,255,0.34),transparent_36%),linear-gradient(180deg,#061b36_0%,#031024_100%)] p-6 text-white shadow-[0_30px_90px_rgba(2,12,27,0.55)] md:p-10">
         <div className="pointer-events-none absolute inset-0 opacity-90">
           <div className="absolute left-1/2 top-4 h-52 w-52 -translate-x-1/2 rounded-full bg-electric-600/25 blur-3xl" />
@@ -772,6 +781,8 @@ function SessionCompleteModal({
               <p className="text-sm leading-6 text-slate-300 md:text-base">Short and often works best. See you next time!</p>
             </div>
           </div>
+
+          {reviewSlot ? <div className="mt-5 w-full text-left">{reviewSlot}</div> : null}
 
           <div className="mt-7 grid w-full gap-4 md:grid-cols-2">
             <button

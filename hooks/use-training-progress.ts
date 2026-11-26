@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { getStoredKit, isVoiceFlexKit, setStoredKit, type VoiceFlexKit } from "@/lib/kits";
+import { setOrderAsin } from "@/lib/review-request";
 import { getActiveProduct, setActiveProduct, type VoiceFlexProduct } from "@/lib/training-product";
 import {
   trainingProgressStore,
@@ -19,6 +20,7 @@ type ProgressApiPayload = {
   message?: string;
   currentDay?: number;
   kit?: string;
+  sourceAsin?: string;
   stats?: {
     practiceStreak?: number;
     totalMinutes?: number;
@@ -152,6 +154,7 @@ export function useTrainingProgress(initialProduct?: VoiceFlexProduct) {
         currentDay: Number(payload.currentDay ?? 1)
       };
 
+      setOrderAsin(activeProduct, payload.sourceAsin);
       if (isVoiceFlexKit(payload.kit)) {
         // The order decides the kit unless the user picked one by hand.
         setStoredKit(activeProduct, payload.kit, "order");

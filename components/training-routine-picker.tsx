@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { ArrowRight, BookOpen, Check, Clock, Flame, Gauge, Shield, Timer } from "lucide-react";
 
+import { ReviewRequest } from "@/components/review-request";
 import { TrainingSidebar } from "@/components/training-sidebar";
 import { useTrainingProgress } from "@/hooks/use-training-progress";
 import { getDefaultKit, getKitOptions, getKitProfile, type VoiceFlexKit } from "@/lib/kits";
@@ -130,7 +131,11 @@ export function TrainingRoutinePicker({ productType }: { productType: VoiceFlexP
             ))}
           </section>
 
-          <section className="mt-8 grid gap-4 md:grid-cols-2">
+          <section className="mt-8">
+            <ReviewRequest productType={productType} />
+          </section>
+
+          <section className="mt-4 grid gap-4 md:grid-cols-2">
             <Link
               href={`/train/${productType}?setup=1`}
               className="flex items-center gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-card transition hover:border-blue-200"

@@ -151,6 +151,7 @@ export async function POST(request: Request) {
       productName: verified.product.productName,
       kit,
       kitName: getKitProfile(kit).name,
+      sourceAsin: verified.sourceAsin,
       // Kept for older clients. The app no longer shows program days.
       currentDay: progress.current_day ?? 1,
       stats: {
