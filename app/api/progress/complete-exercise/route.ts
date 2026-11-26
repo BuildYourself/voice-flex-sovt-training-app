@@ -6,8 +6,12 @@ import {
   type DailyActivityRow,
   ensureOrderProgress,
   getServerEnvironment,
+  PROFILE_NOT_FOUND,
+  requestProfileSlot,
   resolveVerifiedOrder,
 } from "@/lib/order-progress-server";
+import { getExercise } from "@/lib/exercises";
+import { isRoutineSlot } from "@/lib/routines";
 import { isVoiceFlexProduct } from "@/lib/training-product";
 
 export const runtime = "nodejs";
@@ -21,12 +25,14 @@ type CompleteExerciseRequest = {
   durationSeconds?: unknown;
   totalExercises?: unknown;
   practiceDate?: unknown;
+  /** Which person on a multi-unit order (1 = first). */
+  profileSlot?: unknown;
 };
 
 const ERROR_RESPONSE = {
   ok: false,
   status: "server_error",
-  message: "We couldn’t save your progress right now. Your local session can continue.",
+  message: "We couldn't save your progress right now. Your local session can continue.",
 } as const;
 
 function toPositiveNumber(value: unknown) {
@@ -54,7 +60,19 @@ export async function POST(request: Request) {
     const totalExercises = toPositiveNumber(body.totalExercises);
     const practiceDate = isDateString(body.practiceDate) ? body.practiceDate : null;
 
-    if (!orderNumber || !productType || !programDay || !exerciseId || !exerciseTitle || !durationSeconds || !totalExercises || !practiceDate) {
+    // programDay carries the routine slot (1 = Daily Session).
+    if (
+      !orderNumber ||
+      !productType ||
+      !programDay ||
+      !isRoutineSlot(programDay) ||
+      !exerciseId ||
+      !getExercise(exerciseId) ||
+      !exerciseTitle ||
+      !durationSeconds ||
+      !totalExercises ||
+      !practiceDate
+    ) {
       return NextResponse.json(
         {
           ok: false,
@@ -78,7 +96,12 @@ export async function POST(request: Request) {
       return NextResponse.json(verified, { status: verified.status === "not_found" ? 404 : 403 });
     }
 
-    const progress = await ensureOrderProgress(supabase, verified.order.id, productType);
+    const profileSlot = requestProfileSlot(body.profileSlot, verified.seats);
+    if (!profileSlot) {
+      return NextResponse.json(PROFILE_NOT_FOUND, { status: 403 });
+    }
+
+    const progress = await ensureOrderProgress(supabase, verified.order.id, productType, profileSlot);
 
     const { data: existing, error: selectActivityError } = await supabase
       .from("voiceflex_daily_activity")
@@ -87,6 +110,7 @@ export async function POST(request: Request) {
       )
       .eq("order_access_id", verified.order.id)
       .eq("product_type", productType)
+      .eq("profile_slot", profileSlot)
       .eq("activity_date", practiceDate)
       .eq("program_day", programDay)
       .maybeSingle<DailyActivityRow>();
@@ -124,6 +148,7 @@ export async function POST(request: Request) {
       const { error: insertActivityError } = await supabase.from("voiceflex_daily_activity").insert({
         order_access_id: verified.order.id,
         product_type: productType,
+        profile_slot: profileSlot,
         activity_date: practiceDate,
         program_day: programDay,
         completed_exercise_ids: nextIds,
@@ -144,6 +169,7 @@ export async function POST(request: Request) {
       .select("activity_date, completed_exercise_ids, seconds_practiced, full_session_completed")
       .eq("order_access_id", verified.order.id)
       .eq("product_type", productType)
+      .eq("profile_slot", profileSlot)
       .returns<Pick<DailyActivityRow, "activity_date" | "completed_exercise_ids" | "seconds_practiced" | "full_session_completed">[]>();
 
     if (allRowsError) {
@@ -173,8 +199,7 @@ export async function POST(request: Request) {
         last_practice_date: lastPracticeDate,
         updated_at: new Date().toISOString(),
       })
-      .eq("order_access_id", verified.order.id)
-      .eq("product_type", productType);
+      .eq("id", progress.id);
 
     if (updateProgressError) {
       throw updateProgressError;

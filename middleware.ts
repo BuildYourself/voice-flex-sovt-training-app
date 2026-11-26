@@ -1,37 +1,31 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { updateSession } from "@/lib/supabase/middleware";
 
-const PROTECTED_ROUTES = ["/dashboard", "/programs", "/session", "/progress", "/calendar", "/library", "/settings"];
-
-function isProtected(pathname: string) {
-  return PROTECTED_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
-}
-
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  const { supabase, response } = updateSession(request);
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
-
-  if (!user && isProtected(pathname)) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("next", pathname);
-    return NextResponse.redirect(url);
-  }
-
-  if (user && pathname === "/login") {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    url.search = "";
-    return NextResponse.redirect(url);
-  }
-
-  return response;
+/**
+ * Retired pages from the first version of the app (email login, dashboard, 21-day programs) and the
+ * old /train product picker. Training now opens only from the home page with an order number, so
+ * all of these go home.
+ */
+export function middleware(request: NextRequest) {
+  const url = request.nextUrl.clone();
+  url.pathname = "/";
+  url.search = "";
+  return NextResponse.redirect(url);
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"]
+  matcher: [
+    "/train",
+    "/login/:path*",
+    "/sign-in/:path*",
+    "/sign-up/:path*",
+    "/dashboard/:path*",
+    "/programs/:path*",
+    "/session/:path*",
+    "/progress/:path*",
+    "/calendar/:path*",
+    "/library/:path*",
+    "/settings/:path*",
+    "/exercises/:path*",
+    "/assets/onboarding/:path*",
+  ],
 };
-

@@ -18,6 +18,7 @@ import {
   Trophy,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { getIdentityRequestFields } from "@/lib/training-identity";
 
 import { cn } from "@/lib/utils";
 import { TrainingSidebar } from "@/components/training-sidebar";
@@ -31,7 +32,6 @@ import {
   VoiceFlexWavePattern
 } from "@/components/visuals/voice-flex-progress-visuals";
 
-const VERIFIED_ORDER_NUMBER_KEY = "voiceflex_verified_order_number";
 
 type ProgressExercise = {
   id: string;
@@ -76,6 +76,7 @@ type ProgressPayload = {
     secondsPracticed: number;
     displayPracticed: string;
     currentExerciseTitle: string | null;
+    routines?: { routineId: string; title: string; completedCount: number; fullSessionCompleted: boolean; secondsPracticed: number }[];
   };
   session: {
     totalSeconds: number;
@@ -241,7 +242,7 @@ function TodayProgressCard({ data, productType }: { data: ProgressPayload; produ
             <div>
               <h2 className="text-2xl font-black tracking-tight text-black">Today&apos;s Progress</h2>
               <p className="mt-2 text-sm text-slate-600">
-                {productLabel(productType)} <span className="px-2">•</span> Day {data.currentDay}
+                {productLabel(productType)} <span className="px-2">•</span> Daily Session
               </p>
             </div>
             <div className="flex flex-wrap items-end gap-14">
@@ -355,8 +356,17 @@ function PremiumTodayProgressCard({ data, productType }: { data: ProgressPayload
             <div>
               <h2 className="text-3xl font-black tracking-tight text-[#071327]">Today&apos;s Progress</h2>
               <p className="mt-3 text-sm font-medium text-slate-600">
-                {productLabel(productType)} <span className="px-2">&bull;</span> Day {data.currentDay}
+                {productLabel(productType)} <span className="px-2">&bull;</span> Daily Session
               </p>
+              {data.today.routines?.some((routine) => routine.routineId !== "daily") ? (
+                <p className="mt-2 text-sm font-medium text-slate-600">
+                  Also today:{" "}
+                  {data.today.routines
+                    .filter((routine) => routine.routineId !== "daily")
+                    .map((routine) => `${routine.title}${routine.fullSessionCompleted ? " (done)" : ""}`)
+                    .join(", ")}
+                </p>
+              ) : null}
             </div>
             <div className="flex flex-wrap items-center gap-8 xl:pr-52">
               <p className="text-slate-600">
@@ -620,10 +630,10 @@ function PracticeCalendar({ data }: { data: ProgressPayload }) {
   }
 
   return (
-    <section className="rounded-[24px] border border-[#dbe5f2] bg-white p-7 shadow-[0_18px_42px_rgba(15,23,42,0.08)]">
-      <div className="flex items-center justify-between">
+    <section className="min-w-0 rounded-[24px] border border-[#dbe5f2] bg-white p-4 shadow-[0_18px_42px_rgba(15,23,42,0.08)] sm:p-7">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-xl font-black text-black">Practice Calendar</h2>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <button
             type="button"
             onClick={goToPreviousMonth}
@@ -632,7 +642,7 @@ function PracticeCalendar({ data }: { data: ProgressPayload }) {
           >
             {"<"}
           </button>
-          <p className="min-w-[126px] text-center font-black text-slate-700">{monthTitle(viewedMonth)}</p>
+          <p className="min-w-[110px] text-center font-black text-slate-700 sm:min-w-[126px]">{monthTitle(viewedMonth)}</p>
           <button
             type="button"
             onClick={goToNextMonth}
@@ -643,7 +653,7 @@ function PracticeCalendar({ data }: { data: ProgressPayload }) {
           </button>
         </div>
       </div>
-      <div className="mt-7 grid grid-cols-7 gap-3 text-center text-sm font-bold text-slate-500">
+      <div className="mt-5 grid grid-cols-7 gap-1.5 text-center text-xs font-bold text-slate-500 sm:mt-7 sm:gap-3 sm:text-sm">
         {["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"].map((day) => (
           <span key={day}>{day}</span>
         ))}
@@ -653,7 +663,7 @@ function PracticeCalendar({ data }: { data: ProgressPayload }) {
           return (
             <span
               className={cn(
-                "grid h-9 w-9 place-items-center justify-self-center rounded-full text-sm font-black transition",
+                "grid h-8 w-8 place-items-center justify-self-center rounded-full text-xs font-black transition sm:h-9 sm:w-9 sm:text-sm",
                 !cell.inMonth && "text-slate-300",
                 cell.inMonth && !activity && "bg-slate-100 text-slate-600",
                 activity?.fullSessionCompleted && "bg-emerald-500 text-white shadow-[0_10px_20px_rgba(24,191,133,0.22)]",
@@ -668,7 +678,7 @@ function PracticeCalendar({ data }: { data: ProgressPayload }) {
         })}
       </div>
       <div className="mt-7 flex flex-wrap gap-5 text-sm font-medium text-slate-600">
-        <span><span className="mr-2 inline-block h-3 w-3 rounded-full bg-emerald-500" />Full session</span>
+        <span><span className="mr-2 inline-block h-3 w-3 rounded-full bg-emerald-500" />Routine done</span>
         <span><span className="mr-2 inline-block h-3 w-3 rounded-full bg-amber-400" />Partial practice</span>
         <span><span className="mr-2 inline-block h-3 w-3 rounded-full bg-slate-200" />No practice</span>
         <span><span className="mr-2 inline-block h-3 w-3 rounded-full border-2 border-electric-600" />Today</span>
@@ -686,7 +696,7 @@ function Milestones({ milestones, productType }: { milestones: ProgressMilestone
     "from-violet-50 to-white text-violet-600 border-violet-100",
   ];
   return (
-    <section className="rounded-[24px] border border-[#dbe5f2] bg-white p-7 shadow-[0_18px_42px_rgba(15,23,42,0.08)]">
+    <section className="min-w-0 rounded-[24px] border border-[#dbe5f2] bg-white p-4 shadow-[0_18px_42px_rgba(15,23,42,0.08)] sm:p-7">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-black text-black">Milestones</h2>
         <Link href={`/train/${productType}/milestones`} className="text-sm font-black text-electric-700 hover:text-electric-800">
@@ -737,7 +747,7 @@ function Milestones({ milestones, productType }: { milestones: ProgressMilestone
 
 function RecentActivityList({ recentActivity }: { recentActivity: RecentActivity[] }) {
   return (
-    <section className="rounded-[24px] border border-[#dbe5f2] bg-white p-7 shadow-[0_18px_42px_rgba(15,23,42,0.08)]">
+    <section className="min-w-0 rounded-[24px] border border-[#dbe5f2] bg-white p-4 shadow-[0_18px_42px_rgba(15,23,42,0.08)] sm:p-7">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-black text-black">Recent Activity</h2>
         <span className="text-sm font-black text-electric-700">View all</span>
@@ -781,8 +791,8 @@ export function TrainingProgressDashboard({ productType }: { productType: VoiceF
     let cancelled = false;
 
     async function loadProgress() {
-      const orderNumber = window.localStorage.getItem(VERIFIED_ORDER_NUMBER_KEY);
-      if (!orderNumber) {
+      const identity = getIdentityRequestFields(productType);
+      if (!identity) {
         setError("Verify your Amazon order first to unlock progress tracking.");
         setLoading(false);
         return;
@@ -792,12 +802,12 @@ export function TrainingProgressDashboard({ productType }: { productType: VoiceF
         const response = await fetch("/api/progress", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orderNumber, productType }),
+          body: JSON.stringify({ ...identity, productType, today: localDateString() }),
         });
         const payload = (await response.json()) as unknown;
 
         if (!response.ok || !isProgressPayload(payload)) {
-          const message = (payload as ProgressErrorPayload | null)?.message ?? "We couldn’t load your progress right now.";
+          const message = (payload as ProgressErrorPayload | null)?.message ?? "We couldn't load your progress right now.";
           throw new Error(message);
         }
 
@@ -808,7 +818,7 @@ export function TrainingProgressDashboard({ productType }: { productType: VoiceF
       } catch (loadError) {
         console.warn("[training-progress] Failed to load progress.", loadError);
         if (!cancelled) {
-          setError(loadError instanceof Error ? loadError.message : "We couldn’t load your progress right now.");
+          setError(loadError instanceof Error ? loadError.message : "We couldn't load your progress right now.");
         }
       } finally {
         if (!cancelled) {
@@ -857,9 +867,9 @@ export function TrainingProgressDashboard({ productType }: { productType: VoiceF
 
             <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
               <PremiumStatCard Icon={Flame} label="Practice Streak" value={data.stats.practiceStreak} suffix={data.stats.practiceStreak === 1 ? "day" : "days"} hint="Keep it up!" tone="orange" />
-              <PremiumStatCard Icon={Timer} label="Total Minutes" value={data.stats.totalMinutes} suffix="min" hint="This week" />
-              <PremiumStatCard Icon={CheckCircle2} label="Exercises Completed" value={data.stats.exercisesCompleted} hint="This week" tone="green" />
-              <PremiumStatCard Icon={Trophy} label="Full Sessions" value={data.stats.fullSessions} hint="This week" tone="purple" />
+              <PremiumStatCard Icon={Timer} label="Total Minutes" value={data.stats.totalMinutes} suffix="min" hint="All time" />
+              <PremiumStatCard Icon={CheckCircle2} label="Exercises Completed" value={data.stats.exercisesCompleted} hint="All time" tone="green" />
+              <PremiumStatCard Icon={Trophy} label="Routines Completed" value={data.stats.fullSessions} hint="All time" tone="purple" />
             </section>
 
             <section className="grid gap-6 xl:grid-cols-[1.05fr_1fr_1.18fr]">

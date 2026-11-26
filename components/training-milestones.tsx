@@ -9,6 +9,7 @@ import {
   Flame,
   Lock,
   Medal,
+  MessageCircle,
   Mic,
   Music,
   ShieldCheck,
@@ -158,7 +159,7 @@ export function TrainingMilestones({ productType }: { productType: VoiceFlexProd
           <div className="flex flex-wrap items-center gap-5 text-sm text-slate-700">
             <TopMiniStat icon={<Flame className="h-7 w-7 text-orange-500" />} value={totals.currentStreak} label="day streak" tone="orange" />
             <TopMiniStat icon={<Clock className="h-7 w-7 text-slate-700" />} value={formatMinutes(totals.totalSeconds)} label="total minutes" tone="slate" />
-            <TopMiniStat icon={<CalendarCheck className="h-7 w-7 text-electric-700" />} value={totals.fullSessionsCompleted} label="full session" tone="blue" />
+            <TopMiniStat icon={<CalendarCheck className="h-7 w-7 text-electric-700" />} value={totals.fullSessionsCompleted} label={totals.fullSessionsCompleted === 1 ? "routine done" : "routines done"} tone="blue" />
           </div>
         </header>
 
@@ -196,12 +197,12 @@ export function TrainingMilestones({ productType }: { productType: VoiceFlexProd
           <div className="relative z-10 grid border-t border-slate-200/80 bg-white/75 backdrop-blur md:grid-cols-3">
             <JourneyStat icon={<Clock className="h-7 w-7 text-electric-700" />} value={`${formatMinutes(totals.totalSeconds)} min`} label="Time Trained" tone="blue" />
             <JourneyStat icon={<Flame className="h-7 w-7 text-orange-500" />} value={totals.currentStreak} label="Day Streak" tone="orange" />
-            <JourneyStat icon={<CalendarCheck className="h-7 w-7 text-electric-700" />} value={totals.fullSessionsCompleted} label="Full Sessions" tone="cyan" />
+            <JourneyStat icon={<CalendarCheck className="h-7 w-7 text-electric-700" />} value={totals.fullSessionsCompleted} label="Routines Done" tone="cyan" />
           </div>
         </section>
 
         <h2 className="mt-6 text-xl font-black text-black">Featured Milestones</h2>
-        <section className="mt-2 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="mt-2 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
           {featured.map((milestone) => (
             <FeaturedMilestoneCard key={milestone.id} milestone={milestone} />
           ))}
@@ -249,7 +250,7 @@ export function TrainingMilestones({ productType }: { productType: VoiceFlexProd
               ))}
             </div>
           </div>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-6">
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 2xl:grid-cols-6">
             {visibleMilestones.map((milestone) => (
               <MilestoneCard key={milestone.id} milestone={milestone} />
             ))}
@@ -327,7 +328,7 @@ function FeaturedMilestoneCard({ milestone }: { milestone: ComputedMilestone }) 
   const visual = categoryVisual(milestone.category);
   const isLocked = milestone.status === "locked";
   return (
-    <div className={cn("group relative overflow-hidden rounded-3xl border bg-gradient-to-br p-6 text-center shadow-[0_18px_45px_rgba(15,23,42,0.07)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_24px_55px_rgba(15,23,42,0.10)]", visual.soft, visual.border, isLocked && "opacity-85")}>
+    <div className={cn("group relative overflow-hidden rounded-3xl border bg-gradient-to-br p-3 text-center shadow-[0_18px_45px_rgba(15,23,42,0.07)] sm:p-6 transition duration-200 hover:-translate-y-1 hover:shadow-[0_24px_55px_rgba(15,23,42,0.10)]", visual.soft, visual.border, isLocked && "opacity-85")}>
       <div className={cn("absolute -right-10 -top-10 h-28 w-28 rounded-full blur-2xl", visual.glow)} />
       {milestone.status === "completed" && (
         <>
@@ -369,23 +370,13 @@ function ProgressRing({ milestone, size, children }: { milestone: ComputedMilest
 }
 
 function BalanceRow({ item }: { item: ReturnType<typeof computeTrainingBalance>[number] }) {
-  const color =
-    item.label === "Breath Control"
-      ? "from-cyan-400 to-electric-600"
-      : item.label === "Vocal Flexibility"
-        ? "from-blue-400 to-electric-700"
-        : item.label === "Pitch Stability"
-          ? "from-violet-400 to-purple-600"
-          : "from-orange-400 to-orange-600";
-  const iconClass =
-    item.label === "Breath Control"
-      ? "bg-cyan-50 text-cyan-700"
-      : item.label === "Vocal Flexibility"
-        ? "bg-blue-50 text-electric-700"
-        : item.label === "Pitch Stability"
-          ? "bg-violet-50 text-violet-700"
-          : "bg-orange-50 text-orange-600";
-  const Icon = item.label === "Breath Control" ? Waves : item.label === "Vocal Flexibility" ? Mic : item.label === "Pitch Stability" ? Music : CalendarCheck;
+  const style: Record<string, { color: string; iconClass: string; Icon: typeof Waves }> = {
+    "Breath Control": { color: "from-cyan-400 to-electric-600", iconClass: "bg-cyan-50 text-cyan-700", Icon: Waves },
+    "Vocal Flexibility": { color: "from-blue-400 to-electric-700", iconClass: "bg-blue-50 text-electric-700", Icon: Mic },
+    "Pitch Stability": { color: "from-violet-400 to-purple-600", iconClass: "bg-violet-50 text-violet-700", Icon: Music },
+    "Speaking Voice": { color: "from-emerald-400 to-emerald-600", iconClass: "bg-emerald-50 text-emerald-700", Icon: MessageCircle }
+  };
+  const { color, iconClass, Icon } = style[item.label] ?? { color: "from-orange-400 to-orange-600", iconClass: "bg-orange-50 text-orange-600", Icon: CalendarCheck };
   return (
     <div className="grid gap-3 rounded-2xl border border-slate-100 bg-white/80 p-3 shadow-[0_10px_24px_rgba(15,23,42,0.035)] md:grid-cols-[260px_1fr_185px] md:items-center">
       <div className="flex items-center gap-3">
@@ -413,7 +404,7 @@ function MilestoneCard({ milestone }: { milestone: ComputedMilestone }) {
   const visual = categoryVisual(milestone.category);
   const isLocked = milestone.status === "locked";
   return (
-    <div className={cn("group relative overflow-hidden rounded-2xl border bg-gradient-to-br p-5 text-center shadow-[0_12px_30px_rgba(15,23,42,0.06)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_18px_42px_rgba(15,23,42,0.10)]", visual.soft, visual.border, isLocked && "opacity-85")}>
+    <div className={cn("group relative overflow-hidden rounded-2xl border bg-gradient-to-br p-3 text-center sm:p-5 shadow-[0_12px_30px_rgba(15,23,42,0.06)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_18px_42px_rgba(15,23,42,0.10)]", visual.soft, visual.border, isLocked && "opacity-85")}>
       <div className={cn("absolute -right-10 -top-12 h-24 w-24 rounded-full blur-2xl", visual.glow)} />
       <ProgressRing milestone={milestone} size="small">
         <div className={cn("grid h-12 w-12 place-items-center rounded-full", isLocked ? "bg-slate-100 text-slate-500" : milestone.status === "completed" ? "bg-gradient-to-br from-emerald-400 to-green-600 text-white" : visual.icon)}>
@@ -421,7 +412,7 @@ function MilestoneCard({ milestone }: { milestone: ComputedMilestone }) {
         </div>
       </ProgressRing>
       <h3 className="mt-4 text-sm font-black text-black">{milestone.title}</h3>
-      <p className="mx-auto mt-2 min-h-[42px] max-w-[170px] text-xs leading-5 text-slate-600">{milestone.description}</p>
+      <p className="mx-auto mt-2 max-w-[170px] text-xs leading-5 text-slate-600 sm:min-h-[42px]">{milestone.description}</p>
       <div className="mt-2 text-[11px] font-black text-slate-500">{milestoneValueLabel(milestone)}</div>
       <span className={cn("mt-3 inline-flex rounded-xl px-4 py-2 text-xs font-black", statusClass(milestone.status))}>{statusLabel(milestone.status)}</span>
     </div>

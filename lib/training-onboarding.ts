@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
-import { Activity, AirVent, CheckCircle2, Droplet, Info, Leaf, ShieldCheck, Sparkles, Target, Waves } from "lucide-react";
-import type { VoiceFlexProduct } from "@/lib/training-product";
+import { Activity, Clock, Info, Leaf, ShieldCheck, Sparkles, Volume1, Waves } from "lucide-react";
+import { CAP_NAMES, getDefaultKit, getKitPhoto, getKitProfile, isBlueGoOrder, type CapColours, type VoiceFlexKit } from "@/lib/kits";
+import { getProductName, type VoiceFlexProduct } from "@/lib/training-product";
 
 export interface TrainingOnboardingStep {
   id: string;
@@ -13,6 +14,8 @@ export interface TrainingOnboardingStep {
   visualSubtitle: string;
   visualKind: "pro" | "go" | "sovt" | "safety" | "ready";
   imageSrc?: string;
+  /** "contain" for product photos (shown whole), otherwise the picture fills the frame. */
+  imageFit?: "cover" | "contain";
 }
 
 export interface TrainingInfoCard {
@@ -30,181 +33,172 @@ export interface TrainingOnboardingConfig {
   infoCards: TrainingInfoCard[];
 }
 
-const baseTrainingOnboardingConfigs: Record<"pro" | "go", TrainingOnboardingConfig> = {
-  pro: {
-    productType: "pro",
-    productName: "Voice Flex Pro",
-    title: "Let's set up your Voice Flex Pro",
-    subtitle: "We'll walk you through everything you need to know so you can use Voice Flex correctly and confidently before starting Day 1.",
-    steps: [
-      {
-        id: "welcome",
-        label: "Welcome",
-        title: "Welcome to Voice Flex Pro",
-        body: "This setup prepares you to use your bottle and straw routine with a calm, steady approach before your first guided session.",
-        bullets: ["Learn what the system is for", "Prepare your training space", "Understand the Day 1 flow"],
-        callout: "No account required. Your progress is saved on this device only.",
-        visualTitle: "Voice Flex Pro",
-        visualSubtitle: "Bottle + straw SOVT training",
-        visualKind: "pro"
-      },
-      {
-        id: "sovt",
-        label: "What is SOVT?",
-        title: "What is SOVT?",
-        body: "SOVT stands for Semi-Occluded Vocal Tract. It means your voice works through a small, controlled opening. This creates gentle back pressure — a soft airflow support that helps your vocal folds coordinate with less effort.",
-        bullets: ["Gentle back pressure", "Easier airflow control", "Less throat effort", "Steadier warm-up"],
-        callout: "Back pressure does not mean pushing harder. Keep the airflow light, steady, and comfortable.",
-        visualTitle: "SOVT",
-        visualSubtitle: "Semi-Occluded Vocal Tract",
-        visualKind: "sovt"
-      },
-      {
-        id: "setup-bottle-straw",
-        label: "Set up bottle + straw",
-        title: "Set up your bottle + straw",
-        body: "Prepare the bottle and straw so the first exercises feel easy, stable, and controlled.",
-        bullets: ["Fill the bottle to the guided level", "Place the straw correctly", "Sit tall and relax your shoulders", "Keep the setup steady"],
-        callout: "Your setup should feel easy before you begin bubbling.",
-        visualTitle: "Bottle setup",
-        visualSubtitle: "Water level + straw position",
-        visualKind: "pro"
-      },
-      {
-        id: "bubble-basics",
-        label: "Bubble massage basics",
-        title: "Bubble massage basics",
-        body: "Small steady bubbles are the goal. The work should feel gentle and relaxed, never forceful.",
-        bullets: ["Blow softly", "Keep bubbles small", "Avoid splashing", "Stay relaxed in the jaw and neck"],
-        callout: "If the water splashes, reduce pressure and return to smaller bubbles.",
-        visualTitle: "Easy bubbles",
-        visualSubtitle: "Light pressure, steady flow",
-        visualKind: "pro"
-      },
-      {
-        id: "practice-safely",
-        label: "Practice safely",
-        title: "Practice safely",
-        body: "A few simple safety guidelines help you get the most out of each session without overworking your voice.",
-        bullets: ["Use relaxed breath", "Keep it comfortable", "Practice short and consistently", "Stop if anything hurts"],
-        callout: "Gentle, steady, and consistent is the key.",
-        visualTitle: "Safe practice",
-        visualSubtitle: "Easy airflow, no strain",
-        visualKind: "safety"
-      },
-      {
-        id: "start-day-1",
-        label: "Start Day 1",
-        title: "You're ready for Day 1",
-        body: "Your setup is complete. Start your first guided session when you're ready.",
-        bullets: ["Follow the sequence", "Keep airflow steady", "Notice how it feels", "Build consistency"],
-        callout: "Start small. A few focused minutes each day can make a real difference.",
-        visualTitle: "Day 1",
-        visualSubtitle: "Begin your guided routine",
-        visualKind: "ready"
-      }
+/*
+ * The welcome guide. Kept short and plain on purpose (what SOVT is, how it
+ * works, how to get the most out of the app) so the same lines can be reused
+ * on listing images, A+ content and the brand store. The master copy lives in
+ * VOICE-FLEX-APP/WELCOME-COPY.md on P's drive. No medical claims here.
+ */
+
+function kitStep(kit: VoiceFlexKit, caps?: CapColours): TrainingOnboardingStep {
+  const profile = getKitProfile(kit, caps);
+  const base = {
+    id: "your-kit",
+    label: "Your kit",
+    callout: "Pinch your nose while you hum. If the sound doesn't change, your seal is good and all the air is going through the tool.",
+    visualKind: kit === "go" ? ("go" as const) : ("pro" as const),
+    visualTitle: profile.name,
+    visualSubtitle: "Start light, go stronger when it feels easy",
+  };
+
+  if (kit === "pro_classic") {
+    return {
+      ...base,
+      title: "Your straw set",
+      body: "Your kit has straws in different widths. The narrower the straw, the more it holds the air back.",
+      bullets: [
+        "10 mm silicone straw: for bubbling in water",
+        "5 mm straws (metal, silicone or bamboo): light, start here",
+        "3 mm metal straw: stronger, once 5 mm feels easy",
+        "Seal your lips softly around the straw",
+      ],
+      imageSrc: "/images/exercises/setup-straw.webp",
+    };
+  }
+
+  if (kit === "pro" || kit === "core") {
+    const names = CAP_NAMES[profile.capColours ?? "mono"];
+    const cap = (name: string) => name.charAt(0).toUpperCase() + name.slice(1);
+    return {
+      ...base,
+      title: kit === "pro" ? "Your straws, caps and water cup" : "Your straws and caps",
+      body: "The caps go on the end of the metal straw. Each one has a smaller hole, so it holds the air back a bit more.",
+      bullets: [
+        "No cap: the lightest",
+        `${cap(names.light)} cap: light. ${cap(names.medium)} cap: medium. ${cap(names.strong)} cap: strong`,
+        ...(kit === "pro" ? ["Thick silicone straw in the water cup: for bubbling"] : []),
+        `Start with no cap or the ${names.light} cap`,
+      ],
+      imageSrc: `/images/exercises/${profile.capColours === "bright" ? "setup-cap-bright" : "setup-cap"}.webp`,
+    };
+  }
+
+  return {
+    ...base,
+    title: "Your Voice Flex GO",
+    body: "Voice Flex GO is a small trainer you hum through. It does the same job as a narrow straw and fits in your pocket.",
+    bullets: [
+      "Press your lips gently against the wide end",
+      "It never goes inside your mouth",
+      "Set the slider where the air feels gently held back",
+      "Keep the same easy feel the whole time",
     ],
-    infoCards: [
-      { Icon: Droplet, title: "Product setup", items: ["Bottle + straw", "Small steady bubbles", "Relaxed posture"] },
-      { Icon: ShieldCheck, title: "Safety focus", items: ["No strain", "Gentle pressure", "Stop if it hurts"] },
-      { Icon: Target, title: "Day 1 goal", items: ["Easy airflow", "Simple routine", "Consistent practice"] }
-    ]
-  },
-  go: {
-    productType: "go",
-    productName: "Voice Flex GO",
-    title: "Let's set up your Voice Flex GO",
-    subtitle: "We'll walk you through everything you need to know so you can use Voice Flex correctly and confidently before starting Day 1.",
+    imageSrc: "/images/exercises/setup-go.webp",
+  };
+}
+
+export function getTrainingOnboardingConfig(
+  productType: VoiceFlexProduct,
+  kit: VoiceFlexKit = getDefaultKit(productType),
+  caps?: CapColours,
+  sourceAsin?: string | null,
+): TrainingOnboardingConfig {
+  const productName = getProductName(productType);
+  const isGo = kit === "go";
+  // The staged GO pictures show the blue GO. Everyone else sees a photo of their own kit.
+  const blueGo = isGo && isBlueGoOrder(sourceAsin);
+
+  return {
+    productType,
+    productName,
+    title: `Welcome to ${productName}`,
+    subtitle: "One minute of reading, then pick a routine. That's all the setup there is.",
     steps: [
       {
         id: "welcome",
         label: "Welcome",
-        title: "Welcome to Voice Flex GO",
-        body: "This quick setup prepares you to use Voice Flex GO correctly and confidently before your first guided session.",
-        bullets: ["Learn what the trainer does", "Find an easy comfortable starting point", "Understand the Day 1 flow"],
-        callout: "No account required. Your progress is saved on this device only.",
-        visualTitle: "Voice Flex GO",
-        visualSubtitle: "Adjustable SOVT trainer",
-        visualKind: "go",
-        imageSrc: "/images/onboarding/1-welcome.png"
+        title: `Welcome to ${productName}`,
+        body: "This app turns your kit into a few minutes of guided voice training. Pick a routine, follow the timer, done.",
+        bullets: ["What SOVT is, in plain words", "How to set up your kit", "How to get the most out of it"],
+        callout: "No account needed. Your progress is linked to your order number.",
+        visualTitle: productName,
+        visualSubtitle: "Guided SOVT voice training",
+        visualKind: isGo ? "go" : "pro",
+        imageSrc: blueGo ? "/images/onboarding/1-welcome.png" : getKitPhoto(productType, kit, sourceAsin, caps),
+        imageFit: blueGo ? "cover" : "contain",
       },
       {
         id: "sovt",
         label: "What is SOVT?",
         title: "What is SOVT?",
-        body: "SOVT stands for Semi-Occluded Vocal Tract. It means your voice works through a small, controlled opening. This creates gentle back pressure — a soft airflow support that helps your vocal folds coordinate with less effort.",
-        bullets: ["Gentle back pressure", "Easier airflow control", "Less throat effort", "Steadier warm-up"],
-        callout: "Back pressure does not mean pushing harder. Keep the airflow light, steady, and comfortable.",
+        body: "SOVT stands for semi-occluded vocal tract. In plain words: you hum or sing through a small opening, like a straw. The small opening slows the air on its way out.",
+        bullets: ["Semi-occluded = partly closed", "Vocal tract = your throat and mouth", "The straw does the closing for you"],
+        callout: "Voice coaches have used straw exercises for years. It's one of the simplest warm-ups there is.",
         visualTitle: "SOVT",
-        visualSubtitle: "Semi-Occluded Vocal Tract",
+        visualSubtitle: "Semi-occluded vocal tract",
         visualKind: "sovt",
-        imageSrc: "/images/onboarding/2-sovt.png"
+        imageSrc: "/images/onboarding/2-sovt.png",
       },
       {
-        id: "setup-go",
-        label: "Set up Voice Flex GO",
-        title: "Set up your Voice Flex GO",
-        body: "Hold the trainer comfortably and begin with a light, easy setting so your airflow feels calm and controlled.",
-        bullets: ["Start with low resistance", "Keep shoulders relaxed", "Use calm steady airflow", "Make small adjustments"],
-        callout: "Your setup should feel comfortable before you begin the first exercise.",
-        visualTitle: "GO setup",
-        visualSubtitle: "Light resistance, easy airflow",
-        visualKind: "go",
-        imageSrc: "/images/onboarding/3-adjust-resistance.png"
+        id: "how-it-works",
+        label: "How it works",
+        title: "How it works",
+        body: "When the air slows at your lips, a little pressure builds back toward your throat. That helps your vocal folds vibrate with less effort, and sliding between low and high notes gets smoother. You don't need to do anything clever. Just hum.",
+        bullets: ["Less effort for the same sound", "Smoother slides from low to high", "Many people notice it feels easier straight after"],
+        callout: "Narrower opening = more resistance. Start light and only go narrower when it feels easy.",
+        visualTitle: "Gentle back pressure",
+        visualSubtitle: "Air slows at the lips, the voice works easier",
+        visualKind: "sovt",
+      },
+      kitStep(kit, caps),
+      {
+        id: "get-the-most",
+        label: "Get the most",
+        title: "How to get the most out of it",
+        body: "Short and often beats long and rare. A few minutes, once to three times a day, is plenty.",
+        bullets: [
+          "Hum soft to medium, never loud",
+          "Keep your lips sealed so all the air goes through the tool",
+          "Finish with a Voice Check: say a line without the tool and notice how it feels",
+          "Pick the routine that fits your day: a quick reset, a full warm-up, a cool-down",
+        ],
+        callout: "Your streak counts every day you train. Move to stronger resistance when it feels easy, not on a schedule.",
+        visualTitle: "Short and often",
+        visualSubtitle: "2 to 10 minutes, 1 to 3 times a day",
+        visualKind: "ready",
+        imageSrc: `/images/exercises/${isGo ? "seal-check-go" : "seal-check-straw"}.webp`,
       },
       {
-        id: "practice-safely",
-        label: "Practice safely",
-        title: "Practice safely",
-        body: "A few simple safety guidelines help you get the most out of each session without overworking your voice.",
-        bullets: ["Use relaxed breath", "Keep it comfortable", "Practice short and consistently", "Stop if anything hurts"],
-        callout: "Gentle, steady, and consistent is the key.",
+        id: "stay-safe",
+        label: "Stay safe",
+        title: "Keep it easy",
+        body: "Every exercise should feel easy. If something hurts, stop.",
+        bullets: [
+          "Stop if you feel pain, scratchiness or dizziness",
+          "Light-headed? Take a break and breathe normally",
+          "Hoarseness that hasn't improved after 4 weeks needs a doctor",
+          "Voice Flex is for training, not for treating a voice problem",
+        ],
+        callout: "Ready? The Daily Session is a good first routine.",
         visualTitle: "Safe practice",
         visualSubtitle: "Easy airflow, no strain",
         visualKind: "safety",
-        imageSrc: "/images/onboarding/4-safety.png"
+        imageSrc: blueGo ? "/images/onboarding/4-safety.png" : undefined,
       },
-      {
-        id: "start-day-1",
-        label: "Start Day 1",
-        title: "You're ready for Day 1",
-        body: "Your setup is complete. Start your first guided session when you're ready.",
-        bullets: ["Follow the sequence", "Keep airflow steady", "Notice how it feels", "Build consistency"],
-        callout: "Start small. A few focused minutes each day can make a real difference.",
-        visualTitle: "Day 1",
-        visualSubtitle: "Begin your guided routine",
-        visualKind: "ready"
-      }
     ],
     infoCards: [
-      { Icon: AirVent, title: "Comfort setup", items: ["Low resistance", "Easy airflow", "Relaxed posture"] },
-      { Icon: ShieldCheck, title: "Safety focus", items: ["No strain", "Gentle pressure", "Stop if it hurts"] },
-      { Icon: Target, title: "Day 1 goal", items: ["Simple routine", "Steady tone", "Consistent practice"] }
-    ]
-  }
-};
+      { Icon: Clock, title: "Short and often", items: ["2 to 10 minutes", "1 to 3 times a day", "Every day counts toward your streak"] },
+      { Icon: Volume1, title: "Soft and steady", items: ["Soft to medium volume", "Lips sealed", "Start with light resistance"] },
+      { Icon: ShieldCheck, title: "Stop signs", items: ["Pain or scratchiness", "Dizziness", "Hoarseness over 4 weeks"] },
+    ],
+  };
+}
 
-// Core deliberately reuses GO's exercise/setup methodology while retaining
-// an independent identity, onboarding and progress namespace.
-const goOnboarding = baseTrainingOnboardingConfigs.go;
+/** Default config per product, for code that has no kit at hand. */
 export const trainingOnboardingConfigs: Record<VoiceFlexProduct, TrainingOnboardingConfig> = {
-  ...baseTrainingOnboardingConfigs,
-  core: {
-    ...goOnboarding,
-    productType: "core",
-    productName: "Voice Flex Core",
-    title: "Let's set up your Voice Flex Core",
-    steps: goOnboarding.steps.map((step) => ({
-      ...step,
-      id: step.id === "setup-go" ? "setup-core" : step.id,
-      label: step.label.replaceAll("GO", "Core"),
-      title: step.title.replaceAll("Voice Flex GO", "Voice Flex Core"),
-      body: step.body.replaceAll("Voice Flex GO", "Voice Flex Core"),
-      visualTitle: step.visualTitle.replaceAll("GO", "Core"),
-      // Never show a GO product photograph to a Core customer.
-      imageSrc: undefined,
-    })),
-  },
+  pro: getTrainingOnboardingConfig("pro"),
+  go: getTrainingOnboardingConfig("go"),
+  core: getTrainingOnboardingConfig("core"),
 };
 
 export const onboardingVisualIcons: Record<TrainingOnboardingStep["visualKind"], LucideIcon> = {
@@ -212,7 +206,7 @@ export const onboardingVisualIcons: Record<TrainingOnboardingStep["visualKind"],
   go: Activity,
   sovt: Leaf,
   safety: ShieldCheck,
-  ready: Sparkles
+  ready: Sparkles,
 };
 
 export const onboardingCalloutIcon: LucideIcon = Info;

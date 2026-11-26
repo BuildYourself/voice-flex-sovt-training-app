@@ -28,22 +28,28 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { ExerciseGuidePanel } from "@/components/exercise-guide-panel";
+import { ReviewRequest } from "@/components/review-request";
 import { TrainingSidebar } from "@/components/training-sidebar";
 import { useTrainingProgress } from "@/hooks/use-training-progress";
-import { getMilestoneOrderAccessId, recordLocalExerciseCompletion, recordLocalFullSessionCompletion } from "@/lib/local-milestones";
+import { getIdentityRequestFields } from "@/lib/training-identity";
+import { getMilestoneOrderAccessId, loadLocalMilestones, recordLocalExerciseCompletion, recordLocalFullSessionCompletion } from "@/lib/local-milestones";
 import { cn } from "@/lib/utils";
+import { getVoiceRange, GuideTonePlayer, setVoiceRange as storeVoiceRange, type VoiceRange } from "@/lib/guide-tones";
+import { getDefaultKit } from "@/lib/kits";
+import { REVIEW_MODAL_AFTER_ROUTINES } from "@/lib/review-request";
+import type { RoutineId } from "@/lib/routines";
 import type { VoiceFlexProduct } from "@/lib/training-product";
+import { getRoutineDayKey } from "@/lib/training-progress";
 import {
   formatSessionDuration,
   formatSessionTimer,
-  getSessionTotalSeconds,
   getTrainingSessionConfig,
   type TrainingSessionExercise
 } from "@/lib/training-sessions";
 
 type SessionMode = "ready" | "practice" | "paused" | "complete";
 
-const VERIFIED_ORDER_NUMBER_KEY = "voiceflex_verified_order_number";
 function getLocalDateString(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
@@ -55,20 +61,29 @@ function createSessionRunId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-export function TrainingSession({ productType }: { productType: VoiceFlexProduct }) {
+export function TrainingSession({ productType, routineId = "daily" }: { productType: VoiceFlexProduct; routineId?: RoutineId }) {
   const router = useRouter();
   const {
     progress,
+    kit,
+    caps,
     loading,
     markExerciseCompleted,
     addTrainingMinutes,
-    updateProgress,
     updateStreakForToday,
     refreshProgressStats
   } = useTrainingProgress(productType);
-  const session = useMemo(() => getTrainingSessionConfig(productType), [productType]);
-  const day = progress?.currentDay ?? session.day;
-  const dayKey = `day-${day}`;
+  const session = useMemo(
+    () => getTrainingSessionConfig(productType, kit ?? getDefaultKit(productType), routineId),
+    // caps: the exercise text names the cap colours, which arrive with the order.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [productType, kit, caps, routineId]
+  );
+  // The routine slot is saved as program_day. Completion is kept per date and
+  // routine, so tomorrow (or another routine) starts fresh.
+  const slot = session.day;
+  const [practiceDate] = useState(() => getLocalDateString());
+  const dayKey = useMemo(() => getRoutineDayKey(slot, new Date(`${practiceDate}T12:00:00`)), [slot, practiceDate]);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [completedIds, setCompletedIds] = useState<string[]>([]);
   const [remainingSeconds, setRemainingSeconds] = useState(session.exercises[0]?.durationSeconds ?? 0);
@@ -81,9 +96,14 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
   const intervalRef = useRef<number | null>(null);
   const demoAudioRef = useRef<HTMLAudioElement | null>(null);
   const accompanimentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const guidePlayerRef = useRef<GuideTonePlayer | null>(null);
+  const [voiceRange, setVoiceRangeState] = useState<VoiceRange | null>(null);
 
   const currentStep = session.exercises[currentStepIndex] ?? session.exercises[0];
-  const totalSeconds = useMemo(() => getSessionTotalSeconds(productType), [productType]);
+  const totalSeconds = useMemo(
+    () => session.exercises.reduce((total, exercise) => total + exercise.durationSeconds, 0),
+    [session.exercises]
+  );
   const completedSeconds = useMemo(
     () =>
       session.exercises.reduce((total, exercise) => {
@@ -122,11 +142,35 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
   }, [currentStepIndex, currentStep, completedIds.length, session.exercises.length]);
 
   useEffect(() => {
+    setVoiceRangeState(getVoiceRange());
     return () => {
       clearTimer();
       stopAllAudio();
+      guidePlayerRef.current?.dispose();
+      guidePlayerRef.current = null;
     };
   }, []);
+
+  function getGuidePlayer() {
+    if (!guidePlayerRef.current) guidePlayerRef.current = new GuideTonePlayer();
+    return guidePlayerRef.current;
+  }
+
+  function changeVoiceRange(range: VoiceRange) {
+    storeVoiceRange(range);
+    setVoiceRangeState(range);
+  }
+
+  function playGuideNote(step: TrainingSessionExercise) {
+    if (!step.guide) return;
+    // Long Hum Hold plays its reference note even while the timer runs.
+    if (mode === "practice" && step.guide !== "hold-note") return;
+    getGuidePlayer().start("hold-note", voiceRange ?? "lower", false);
+  }
+
+  function hasLoopingGuide(step: TrainingSessionExercise) {
+    return Boolean(step.guide && step.guide !== "hold-note" && !step.accompanimentAudioSrc);
+  }
 
   function clearTimer() {
     if (intervalRef.current) {
@@ -153,6 +197,7 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
   }
 
   function stopAllAudio() {
+    guidePlayerRef.current?.stop();
     const demoAudio = demoAudioRef.current;
     if (demoAudio) {
       demoAudio.pause();
@@ -255,9 +300,9 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
   }
 
   async function syncCompletedExercise(step: TrainingSessionExercise) {
-    const orderNumber = window.localStorage.getItem(VERIFIED_ORDER_NUMBER_KEY);
+    const identity = getIdentityRequestFields(productType);
 
-    if (!orderNumber) {
+    if (!identity) {
       console.warn("[training-session] Skipping remote progress sync because no verified order is stored.");
       return false;
     }
@@ -269,14 +314,14 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          orderNumber,
+          ...identity,
           productType,
-          programDay: day,
+          programDay: slot,
           exerciseId: step.id,
           exerciseTitle: step.title,
           durationSeconds: step.durationSeconds,
           totalExercises: session.exercises.length,
-          practiceDate: getLocalDateString()
+          practiceDate
         })
       });
 
@@ -317,15 +362,12 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
         exerciseId: step.id,
         exerciseTitle: step.title,
         durationSeconds: step.durationSeconds,
-        programDay: day,
+        programDay: slot,
         completedAt: new Date().toISOString(),
         sessionRunId: sessionRunIdRef.current
       });
 
-      if (isSessionComplete && progress) {
-        updateProgress({
-          completedDays: Array.from(new Set([...progress.completedDays, day]))
-        });
+      if (isSessionComplete) {
         recordLocalFullSessionCompletion({
           productType,
           orderAccessId: getMilestoneOrderAccessId(),
@@ -367,6 +409,7 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
   function pauseTimer() {
     clearTimer();
     pauseAudio("accompaniment");
+    guidePlayerRef.current?.stop();
     setMode("paused");
   }
 
@@ -383,6 +426,8 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
       } else {
         void playAudio("accompaniment", currentStep.accompanimentAudioSrc);
       }
+    } else if (hasLoopingGuide(currentStep) && currentStep.guide) {
+      getGuidePlayer().start(currentStep.guide, voiceRange ?? "lower");
     }
     startTimer();
   }
@@ -421,12 +466,26 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
     );
   }
 
+  const guidePanel = currentStep.guide ? (
+    <ExerciseGuidePanel
+      key={currentStep.id}
+      productType={productType}
+      pattern={currentStep.guide}
+      range={voiceRange}
+      onRangeChange={changeVoiceRange}
+      onPlayNote={() => playGuideNote(currentStep)}
+      practicing={mode === "practice"}
+    />
+  ) : null;
+
   return (
     <div className="min-h-screen bg-[#f6f9fd] text-navy-950">
-      <TrainingSidebar productType={productType} activeItem="sessions" />
+      <TrainingSidebar productType={productType} activeItem="sessions" mobileNav={false} />
 
       <main className="px-4 py-6 pb-28 sm:px-6 md:pb-6 lg:ml-[272px] lg:px-8">
         <MobileTrainingSession
+          productType={productType}
+          guidePanel={guidePanel}
           sessionTitle={session.title}
           currentStep={currentStep}
           currentStepIndex={currentStepIndex}
@@ -450,8 +509,11 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
         <div className="mx-auto hidden max-w-[1680px] md:block">
           <header className="mb-8 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             <div>
-              <h1 className="text-[32px] font-black leading-tight tracking-normal text-black md:text-[38px]">{session.title}</h1>
-              <p className="mt-2 text-base leading-7 text-slate-600 md:text-lg">{session.subtitle}</p>
+              <Link href={`/train/${productType}`} className="text-sm font-black text-electric-700 hover:underline">
+                &larr; All routines
+              </Link>
+              <h1 className="mt-2 text-[32px] font-black leading-tight tracking-normal text-black md:text-[38px]">{session.title}</h1>
+              <p className="mt-2 max-w-3xl text-base leading-7 text-slate-600 md:text-lg">{session.subtitle}</p>
             </div>
             <div className="flex flex-col items-start gap-3 xl:items-end">
               <div className="flex items-center gap-5 text-sm text-slate-700">
@@ -465,23 +527,28 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
             </div>
           </header>
 
-          <div className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)_330px]">
-            <SessionFlow
-              steps={session.exercises}
-              currentStepIndex={currentStepIndex}
-              completedIds={completedIds}
-            />
+          {/* Laptops (1280-1759 px): exercise on the left, step list and overview on the right.
+              Wide screens: step list | exercise | overview. Three columns on a laptop left
+              the exercise column under 450 px wide. */}
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_300px] xl:grid-rows-[auto_1fr] xl:[grid-template-areas:'main_flow'_'main_aside'] min-[1760px]:grid-cols-[280px_minmax(0,1fr)_330px] min-[1760px]:grid-rows-[auto] min-[1760px]:[grid-template-areas:'flow_main_aside']">
+            <div className="xl:[grid-area:flow]">
+              <SessionFlow
+                steps={session.exercises}
+                currentStepIndex={currentStepIndex}
+                completedIds={completedIds}
+              />
+            </div>
 
-            <section className="space-y-5">
+            <section className="min-w-0 space-y-5 xl:[grid-area:main]">
               <Card className="overflow-hidden">
                 <CardContent className="p-6 md:p-8">
-                  <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_230px]">
+                  <div className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_230px]">
                     <div>
                       <div className="mb-7 flex items-center gap-4">
                         <Waves className="h-8 w-8 text-electric-700" />
                         <span className="font-bold text-slate-600">Current Exercise</span>
                       </div>
-                      <h2 className="text-[34px] font-black leading-tight tracking-normal text-black md:text-[48px]">{currentStep.title}</h2>
+                      <h2 className="text-[34px] font-black leading-tight tracking-normal text-black md:text-[42px]">{currentStep.title}</h2>
                       <p className="mt-4 flex items-center gap-2 text-base text-slate-700">
                         <span className="h-3 w-3 rounded-full bg-amber-400" />
                         Tool: {currentStep.tool ?? "Voice Flex"}
@@ -498,6 +565,7 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
                   </div>
 
                   <WatchDemoCard currentStep={currentStep} playingAudio={playingAudio} demoDisabled={mode === "practice"} onToggleDemo={toggleDemoAudio} />
+                  {guidePanel}
 
                   <div className="mt-4 rounded-3xl border border-blue-200 bg-blue-50/40 p-5">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -506,9 +574,15 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
                           {currentStep.accompanimentAudioSrc ? <KeyboardMusic className="h-5 w-5" /> : <Target className="h-5 w-5" />}
                         </span>
                         <div>
-                          <h3 className="text-[28px] font-black leading-tight text-black">2. {currentStep.accompanimentAudioSrc ? "Practice with Piano" : "Start Exercise"}</h3>
+                          <h3 className="text-[28px] font-black leading-tight text-black">
+                            2. {currentStep.accompanimentAudioSrc ? "Practice with the Piano Track" : hasLoopingGuide(currentStep) ? "Practice with Guide Tones" : "Start Exercise"}
+                          </h3>
                           <p className="mt-1 text-sm text-slate-600">
-                            {currentStep.accompanimentAudioSrc ? "Start the accompaniment and sing along for the full step." : "Start the timer and follow the exercise instructions."}
+                            {currentStep.accompanimentAudioSrc
+                              ? "The app plays the piano. Press start and sing along for the full step."
+                              : hasLoopingGuide(currentStep)
+                                ? "Start the timer. The guide tones play in your voice range."
+                                : "Start the timer and follow the exercise instructions."}
                           </p>
                         </div>
                       </div>
@@ -547,7 +621,7 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
               </div>
             </section>
 
-            <aside className="space-y-6">
+            <aside className="space-y-6 xl:[grid-area:aside]">
               <Card>
                 <CardContent className="p-7">
                   <div className="flex items-start gap-4">
@@ -572,8 +646,8 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
                       <p className="mt-1 text-sm text-slate-600">Steps Completed</p>
                     </div>
                     <div>
-                      <p className="text-3xl font-black text-black">0</p>
-                      <p className="mt-1 text-sm text-slate-600">Achievements</p>
+                      <p className="text-3xl font-black text-black">{Math.max(0, session.exercises.length - completedIds.length)}</p>
+                      <p className="mt-1 text-sm text-slate-600">Steps Left</p>
                     </div>
                   </div>
                   <div className="mt-7 border-t border-slate-200 pt-5 text-sm text-slate-600">
@@ -623,6 +697,11 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
         dayStreak={Math.max(1, progress.streak || 1)}
         completedExercises={completedIds.length}
         totalExercises={session.exercises.length}
+        reviewSlot={
+          sessionCompleteModalOpen && loadLocalMilestones(productType).totals.fullSessionsCompleted >= REVIEW_MODAL_AFTER_ROUTINES ? (
+            <ReviewRequest productType={productType} variant="modal" />
+          ) : null
+        }
       />
     </div>
   );
@@ -636,8 +715,10 @@ function SessionCompleteModal({
   timeTrainedLabel,
   dayStreak,
   completedExercises,
-  totalExercises
+  totalExercises,
+  reviewSlot
 }: {
+  reviewSlot?: ReactNode;
   open: boolean;
   onClose: () => void;
   onViewProgress: () => void;
@@ -663,7 +744,7 @@ function SessionCompleteModal({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-[#020c1b]/70 px-4 py-8 backdrop-blur-md" role="dialog" aria-modal="true" aria-labelledby="session-complete-title">
+    <div className="fixed inset-0 z-50 grid items-start justify-items-center overflow-y-auto bg-[#020c1b]/70 px-4 py-8 backdrop-blur-md md:items-center" role="dialog" aria-modal="true" aria-labelledby="session-complete-title">
       <div className="relative w-full max-w-[720px] overflow-hidden rounded-[28px] border border-blue-300/20 bg-[radial-gradient(circle_at_50%_0%,rgba(28,118,255,0.34),transparent_36%),linear-gradient(180deg,#061b36_0%,#031024_100%)] p-6 text-white shadow-[0_30px_90px_rgba(2,12,27,0.55)] md:p-10">
         <div className="pointer-events-none absolute inset-0 opacity-90">
           <div className="absolute left-1/2 top-4 h-52 w-52 -translate-x-1/2 rounded-full bg-electric-600/25 blur-3xl" />
@@ -705,9 +786,11 @@ function SessionCompleteModal({
             <div>
               <h3 className="text-lg font-black text-white">Consistency is Power</h3>
               <p className="mt-1 text-sm leading-6 text-slate-300 md:text-base">Every minute you train, your voice gets stronger.</p>
-              <p className="text-sm leading-6 text-slate-300 md:text-base">See you in the next session!</p>
+              <p className="text-sm leading-6 text-slate-300 md:text-base">Short and often works best. See you next time!</p>
             </div>
           </div>
+
+          {reviewSlot ? <div className="mt-5 w-full text-left">{reviewSlot}</div> : null}
 
           <div className="mt-7 grid w-full gap-4 md:grid-cols-2">
             <button
@@ -724,7 +807,7 @@ function SessionCompleteModal({
               className="inline-flex h-16 items-center justify-center gap-3 rounded-xl bg-electric-600 px-6 text-lg font-black text-white shadow-[0_18px_35px_rgba(23,105,246,0.35)] transition hover:bg-electric-700 focus:outline-none focus:ring-2 focus:ring-cyan-300"
             >
               <ArrowRight className="h-6 w-6" />
-              Back to Dashboard
+              Choose another routine
             </button>
           </div>
         </div>
@@ -744,6 +827,8 @@ function SessionCompleteStat({ icon, label, value }: { icon: ReactNode; label: s
 }
 
 function MobileTrainingSession({
+  productType,
+  guidePanel,
   sessionTitle,
   currentStep,
   currentStepIndex,
@@ -763,6 +848,8 @@ function MobileTrainingSession({
   onPrevious,
   onSkip
 }: {
+  productType: VoiceFlexProduct;
+  guidePanel: ReactNode;
   sessionTitle: string;
   currentStep: TrainingSessionExercise;
   currentStepIndex: number;
@@ -799,7 +886,9 @@ function MobileTrainingSession({
       <div className="sticky top-0 z-30 -mx-4 mb-4 border-b border-slate-200/70 bg-[#f6f9fd]/95 px-4 pb-3 pt-2 backdrop-blur">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-electric-700">{sessionTitle}</p>
+            <Link href={`/train/${productType}`} className="text-xs font-black uppercase tracking-[0.18em] text-electric-700">
+              &larr; {sessionTitle}
+            </Link>
             <h1 className="mt-1 truncate text-2xl font-black leading-tight text-black">{currentStep.title}</h1>
             <p className="text-sm font-bold text-electric-700">
               Step {currentStepIndex + 1}/{steps.length}
@@ -840,25 +929,45 @@ function MobileTrainingSession({
           </p>
           <p className="mt-4 text-base leading-7 text-slate-700">{currentStep.description}</p>
 
+          {currentStep.demoSteps?.length ? (
+            <div className="-mx-4 mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2" aria-label="How to do it">
+              {currentStep.demoSteps.map((demo) => (
+                <div key={`${currentStep.id}-${demo.title}`} className="w-[230px] shrink-0 snap-start rounded-2xl border border-blue-100 bg-blue-50/40 p-3">
+                  {demo.imageSrc ? (
+                    <img src={demo.imageSrc} alt={`${currentStep.title}: ${demo.subtitle}`} className="h-40 w-full rounded-xl bg-white object-contain" />
+                  ) : null}
+                  <p className="mt-2 text-sm font-black text-black">{demo.subtitle}</p>
+                  <ul className="mt-1 space-y-1 text-xs font-semibold leading-5 text-slate-600">
+                    {demo.bullets.map((bullet) => (
+                      <li key={bullet}>{bullet}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
           <div className="mt-5 flex justify-center">
             <MobileTimerRing progress={safeStepProgress} remainingSeconds={remainingSeconds} />
           </div>
 
           <div className="mt-5 grid grid-cols-2 gap-3">
-            <Button className="col-span-2 h-14 rounded-2xl text-base font-black shadow-blue md:col-span-1" onClick={onPracticeClick} disabled={allComplete}>
+            <Button className="col-span-2 h-14 rounded-2xl text-base font-black shadow-blue" onClick={onPracticeClick} disabled={allComplete}>
               {mode === "practice" ? <Pause className="mr-2 h-5 w-5 fill-current" /> : <Play className="mr-2 h-5 w-5 fill-current" />}
               {actionLabel}
             </Button>
-            <Button
-              variant="outline"
-              className="h-14 rounded-2xl border-blue-200 bg-white text-base font-black text-electric-700"
-              type="button"
-              disabled={mode === "practice" || !currentStep.demoAudioSrc}
-              onClick={() => onToggleDemo(currentStep)}
-            >
-              {playingAudio === "demo" ? <Pause className="mr-2 h-5 w-5 fill-current" /> : <Play className="mr-2 h-5 w-5 fill-current" />}
-              Demo
-            </Button>
+            {currentStep.demoAudioSrc ? (
+              <Button
+                variant="outline"
+                className="col-span-2 h-12 rounded-2xl border-blue-200 bg-white text-base font-black text-electric-700"
+                type="button"
+                disabled={mode === "practice"}
+                onClick={() => onToggleDemo(currentStep)}
+              >
+                {playingAudio === "demo" ? <Pause className="mr-2 h-5 w-5 fill-current" /> : <Play className="mr-2 h-5 w-5 fill-current" />}
+                Hear how it sounds
+              </Button>
+            ) : null}
             <Button variant="outline" className="h-12 rounded-2xl border-slate-200 bg-white font-black text-electric-700" onClick={onPrevious} disabled={currentStepIndex === 0}>
               <SkipBack className="mr-2 h-4 w-4" />
               Previous
@@ -868,6 +977,8 @@ function MobileTrainingSession({
               <SkipForward className="ml-2 h-4 w-4" />
             </Button>
           </div>
+
+          {guidePanel}
 
           <div className="mt-4 inline-flex rounded-full bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700">
             <span className="mr-2 mt-1 h-2 w-2 rounded-full bg-emerald-500" />
@@ -945,7 +1056,6 @@ function MobileTrainingSession({
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-18px_40px_rgba(15,23,42,0.12)] backdrop-blur md:hidden" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
         <div className="mx-auto flex max-w-md items-center justify-between gap-3">
           <div className="flex items-center gap-3 text-slate-700">
-            <span className="text-2xl text-electric-700">☰</span>
             <span className="font-black">
               Step {currentStepIndex + 1}/{steps.length}
             </span>
@@ -1140,9 +1250,9 @@ function SessionFlow({
           <div className="mt-7 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-slate-600">
             <p className="flex items-center gap-2 font-black text-electric-700">
               <KeyboardMusic className="h-4 w-4" />
-              Piano required
+              Piano notes included
             </p>
-            <p className="mt-1">These exercises include piano guidance.</p>
+            <p className="mt-1">The app plays the notes for you.</p>
           </div>
         )}
       </CardContent>
@@ -1202,21 +1312,21 @@ function WatchDemoCard({
           {hasAudioDemo && !hasVisualDemo ? <KeyboardMusic className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
         </span>
         <div className="min-w-0 flex-1">
-          <h3 className="text-[28px] font-black leading-tight text-black">1. {hasVisualDemo ? "Watch Demo" : "Listen to Demo"}</h3>
+          <h3 className="text-[28px] font-black leading-tight text-black">1. {hasVisualDemo ? "How to do it" : "Listen to Demo"}</h3>
           <p className="mt-1 text-sm text-slate-600">
-            {hasVisualDemo ? "See how to set up and perform the exercise before you begin." : "Hear how the exercise should sound before you begin."}
+            {hasVisualDemo ? "Set up, then follow the shape of the sound." : "Hear how the exercise should sound before you begin."}
           </p>
         </div>
       </div>
 
       {hasVisualDemo ? (
-        <div className="mt-5 grid gap-5 md:grid-cols-3">
+        <div className={cn("mt-5 grid gap-5 sm:grid-cols-2", (currentStep.demoSteps?.length ?? 0) >= 3 && "2xl:grid-cols-3")}>
           {currentStep.demoSteps?.map((step, index) => (
             <div key={`${currentStep.id}-${step.title}`} className="rounded-2xl border border-blue-200 bg-white p-4 text-center">
               <h4 className="font-black text-black">{step.title}</h4>
               <p className="text-sm font-black text-black">{step.subtitle}</p>
               <div className="relative mt-4 overflow-hidden rounded-2xl bg-slate-50">
-                {step.imageSrc ? <img src={step.imageSrc} alt={`${currentStep.title} ${step.subtitle}`} className="h-36 w-full object-contain" /> : null}
+                {step.imageSrc ? <img src={step.imageSrc} alt={`${currentStep.title} ${step.subtitle}`} className="aspect-square w-full object-contain" /> : null}
                 <span className="absolute left-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-electric-600 text-sm font-black text-white">{index + 1}</span>
               </div>
               <ul className="mt-4 space-y-2 rounded-2xl bg-blue-50 p-3 text-left text-xs font-semibold leading-5 text-navy-950">
@@ -1230,7 +1340,24 @@ function WatchDemoCard({
             </div>
           ))}
         </div>
-      ) : hasAudioDemo ? (
+      ) : null}
+
+      {hasVisualDemo && hasAudioDemo ? (
+        <div className="mt-5 flex flex-wrap items-center gap-4">
+          <Button
+            variant="outline"
+            className="h-12 rounded-xl border-blue-200 px-7 font-black text-electric-700"
+            type="button"
+            disabled={demoDisabled}
+            onClick={() => onToggleDemo(currentStep)}
+          >
+            {playingAudio === "demo" ? <Pause className="mr-2 h-4 w-4 fill-current" /> : <Play className="mr-2 h-4 w-4 fill-current" />}
+            {playingAudio === "demo" ? "Pause Demo" : "Hear how it sounds"}
+          </Button>
+        </div>
+      ) : null}
+
+      {hasVisualDemo ? null : hasAudioDemo ? (
         <div className="mt-5 flex flex-wrap items-center gap-4 pl-0 md:pl-[58px]">
           <Button
             variant="outline"
@@ -1246,7 +1373,9 @@ function WatchDemoCard({
         </div>
       ) : (
         <div className="mt-5 rounded-2xl border border-blue-100 bg-white p-5 text-sm font-semibold text-slate-600">
-          Visual demo coming soon. Start the exercise when you are ready and keep everything relaxed.
+          {currentStep.guide
+            ? "Use the guide tones below. Start the exercise when you are ready and keep everything relaxed."
+            : "Visual demo coming soon. Start the exercise when you are ready and keep everything relaxed."}
         </div>
       )}
     </div>

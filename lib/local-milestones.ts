@@ -1,3 +1,4 @@
+import { getExercise } from "@/lib/exercises";
 import type { VoiceFlexProduct } from "@/lib/training-product";
 
 export type MilestoneCategory = "starter" | "consistency" | "time" | "sessions" | "skills";
@@ -28,6 +29,7 @@ export type LocalMilestoneState = {
     breathSeconds: number;
     flexibilityCount: number;
     pitchExerciseCount: number;
+    speakingCount: number;
     consistencyDays: number;
   };
   completedEventKeys: string[];
@@ -79,14 +81,14 @@ export const MILESTONE_STORAGE_PREFIX = "voiceflex:milestones:v1";
 
 const MILESTONES: MilestoneDefinition[] = [
   { id: "first_step", title: "First Step", description: "Complete your first exercise.", category: "starter", target: 1, getValue: (state) => state.totals.exercisesCompleted },
-  { id: "first_full_session", title: "First Full Session", description: "Complete 1 full session.", category: "starter", target: 1, getValue: (state) => state.totals.fullSessionsCompleted },
+  { id: "first_full_session", title: "First Full Routine", description: "Finish every step of a routine.", category: "starter", target: 1, getValue: (state) => state.totals.fullSessionsCompleted },
   { id: "ten_minutes", title: "10 Minutes Trained", description: "Train for a total of 10 minutes.", category: "time", target: 600, getValue: (state) => state.totals.totalSeconds },
   { id: "thirty_minutes", title: "30 Minutes Trained", description: "Train for a total of 30 minutes.", category: "time", target: 1800, getValue: (state) => state.totals.totalSeconds },
   { id: "one_hour", title: "1 Hour Trained", description: "Train for a total of 1 hour.", category: "time", target: 3600, getValue: (state) => state.totals.totalSeconds, lockedUntil: ["thirty_minutes"] },
   { id: "three_day_streak", title: "3-Day Streak", description: "Practice on 3 consecutive days.", category: "consistency", target: 3, getValue: (state) => state.totals.currentStreak },
   { id: "seven_day_routine", title: "7-Day Routine", description: "Practice on 7 consecutive days.", category: "consistency", target: 7, getValue: (state) => state.totals.currentStreak, lockedUntil: ["three_day_streak"] },
-  { id: "two_full_sessions", title: "2 Full Sessions", description: "Complete 2 full sessions.", category: "sessions", target: 2, getValue: (state) => state.totals.fullSessionsCompleted, lockedUntil: ["first_full_session"] },
-  { id: "five_full_sessions", title: "5 Full Sessions", description: "Complete 5 full sessions.", category: "sessions", target: 5, getValue: (state) => state.totals.fullSessionsCompleted, lockedUntil: ["two_full_sessions"] },
+  { id: "two_full_sessions", title: "2 Full Routines", description: "Finish 2 routines.", category: "sessions", target: 2, getValue: (state) => state.totals.fullSessionsCompleted, lockedUntil: ["first_full_session"] },
+  { id: "five_full_sessions", title: "5 Full Routines", description: "Finish 5 routines.", category: "sessions", target: 5, getValue: (state) => state.totals.fullSessionsCompleted, lockedUntil: ["two_full_sessions"] },
   { id: "smooth_starter", title: "Smooth Starter", description: "Complete 5 Siren exercises.", category: "skills", target: 5, getValue: (state) => state.exerciseStats.siren },
   { id: "breath_builder", title: "Breath Builder", description: "Complete 10 Waves exercises.", category: "skills", target: 10, getValue: (state) => state.exerciseStats.waves },
   { id: "pitch_starter", title: "Pitch Starter", description: "Complete 5 pitch exercises.", category: "skills", target: 5, getValue: (state) => state.focusStats.pitchExerciseCount },
@@ -161,6 +163,7 @@ function defaultState(productType: VoiceFlexProduct, orderAccessId?: string): Lo
       breathSeconds: 0,
       flexibilityCount: 0,
       pitchExerciseCount: 0,
+      speakingCount: 0,
       consistencyDays: 0
     },
     completedEventKeys: [],
@@ -263,14 +266,12 @@ export function recordLocalExerciseCompletion(event: LocalExerciseCompletionEven
   const exerciseStats = { ...state.exerciseStats, [category]: state.exerciseStats[category] + 1 };
   const focusStats = { ...state.focusStats };
 
-  if (category === "waves") focusStats.breathSeconds += event.durationSeconds;
-  if (category === "siren") focusStats.flexibilityCount += 1;
-  if (category === "twoNotes") focusStats.pitchExerciseCount += 1;
-  if (category === "arpeggio") {
-    focusStats.flexibilityCount += 1;
-    focusStats.pitchExerciseCount += 1;
-  }
-  if (category === "fiveNotes") focusStats.pitchExerciseCount += 1;
+  // Skill bars follow the exercise library (lib/exercises.ts).
+  const skills = getExercise(event.exerciseId)?.skills ?? [];
+  if (skills.includes("breath")) focusStats.breathSeconds += event.durationSeconds;
+  if (skills.includes("flexibility")) focusStats.flexibilityCount += 1;
+  if (skills.includes("pitch")) focusStats.pitchExerciseCount += 1;
+  if (skills.includes("speaking")) focusStats.speakingCount += 1;
 
   const totals = updatePracticeDay(
     {
@@ -392,12 +393,14 @@ export function computeTrainingBalance(state: LocalMilestoneState) {
   const breath = computeTrainingBalanceLevel(breathMinutes, [10, 25, 50, 100, 200], "min");
   const flexibility = computeTrainingBalanceLevel(state.focusStats.flexibilityCount, [5, 15, 30, 60, 120], "glides");
   const pitch = computeTrainingBalanceLevel(state.focusStats.pitchExerciseCount, [10, 25, 50, 100, 200], "pitch exercises");
+  const speaking = computeTrainingBalanceLevel(state.focusStats.speakingCount, [5, 15, 30, 60, 120], "speaking drills");
   const consistency = computeTrainingBalanceLevel(state.totals.practiceDays.length, [3, 7, 14, 30, 60], "practice days");
 
   return [
     { label: "Breath Control", value: breathMinutes, target: breath.targetValue, suffix: "min", display: breath.display, percent: breath.progressPercent, level: breath.level, levelName: breath.levelName, levelLabel: breath.label, tone: "blue" },
     { label: "Vocal Flexibility", value: state.focusStats.flexibilityCount, target: flexibility.targetValue, suffix: "glides", display: flexibility.display, percent: flexibility.progressPercent, level: flexibility.level, levelName: flexibility.levelName, levelLabel: flexibility.label, tone: "purple" },
     { label: "Pitch Stability", value: state.focusStats.pitchExerciseCount, target: pitch.targetValue, suffix: "pitch exercises", display: pitch.display, percent: pitch.progressPercent, level: pitch.level, levelName: pitch.levelName, levelLabel: pitch.label, tone: "violet" },
+    { label: "Speaking Voice", value: state.focusStats.speakingCount, target: speaking.targetValue, suffix: "speaking drills", display: speaking.display, percent: speaking.progressPercent, level: speaking.level, levelName: speaking.levelName, levelLabel: speaking.label, tone: "green" },
     { label: "Consistency", value: state.totals.practiceDays.length, target: consistency.targetValue, suffix: "practice days", display: consistency.display, percent: consistency.progressPercent, level: consistency.level, levelName: consistency.levelName, levelLabel: consistency.label, tone: "orange" }
   ];
 }
@@ -407,4 +410,70 @@ export function resetAllLocalMilestones() {
   Object.keys(window.localStorage)
     .filter((key) => key.startsWith(MILESTONE_STORAGE_PREFIX))
     .forEach((key) => window.localStorage.removeItem(key));
+}
+
+export type MilestoneActivityRow = {
+  activity_date: string;
+  program_day: number | null;
+  completed_exercise_ids: string[] | null;
+  seconds_practiced: number | null;
+  full_session_completed: boolean | null;
+};
+
+function dayNumber(dateString: string) {
+  const [year, month, day] = dateString.split("-").map(Number);
+  return Math.floor(Date.UTC(year, month - 1, day) / 86_400_000);
+}
+
+/** Consecutive practice days ending on the last practice date (same rule as the live counter). */
+function streakEndingOnLastDay(sortedDates: string[]) {
+  if (!sortedDates.length) return 0;
+  let streak = 1;
+  for (let index = sortedDates.length - 1; index > 0; index -= 1) {
+    if (dayNumber(sortedDates[index]) - dayNumber(sortedDates[index - 1]) !== 1) break;
+    streak += 1;
+  }
+  return streak;
+}
+
+/**
+ * Rebuild the milestone state from the saved daily activity, so milestones follow the user to any device.
+ * exerciseSeconds(slot, exerciseId) gives the length of an exercise inside that routine.
+ */
+export function buildMilestoneStateFromActivity(
+  productType: VoiceFlexProduct,
+  rows: MilestoneActivityRow[],
+  exerciseSeconds: (slot: number, exerciseId: string) => number,
+  unlockedMilestones: LocalMilestoneState["unlockedMilestones"] = {},
+): LocalMilestoneState {
+  const state = defaultState(productType);
+  const practiceDays = new Set<string>();
+
+  for (const row of rows) {
+    const ids = Array.from(new Set(row.completed_exercise_ids ?? []));
+    const slot = row.program_day ?? 1;
+    if (ids.length || (row.seconds_practiced ?? 0) > 0) practiceDays.add(row.activity_date);
+    state.totals.totalSeconds += row.seconds_practiced ?? 0;
+    state.totals.exercisesCompleted += ids.length;
+    if (row.full_session_completed) state.totals.fullSessionsCompleted += 1;
+
+    for (const id of ids) {
+      const exercise = getExercise(id);
+      const category = getExerciseCategory(id, exercise?.title ?? id);
+      state.exerciseStats[category] += 1;
+      const skills = exercise?.skills ?? [];
+      if (skills.includes("breath")) state.focusStats.breathSeconds += exerciseSeconds(slot, id);
+      if (skills.includes("flexibility")) state.focusStats.flexibilityCount += 1;
+      if (skills.includes("pitch")) state.focusStats.pitchExerciseCount += 1;
+      if (skills.includes("speaking")) state.focusStats.speakingCount += 1;
+    }
+  }
+
+  const sortedDays = Array.from(practiceDays).sort();
+  state.totals.practiceDays = sortedDays;
+  state.totals.currentStreak = streakEndingOnLastDay(sortedDays);
+  state.totals.lastPracticeDate = sortedDays.length ? sortedDays[sortedDays.length - 1] : null;
+  state.focusStats.consistencyDays = sortedDays.length;
+
+  return withUnlockedMilestones({ ...state, unlockedMilestones: { ...unlockedMilestones } });
 }

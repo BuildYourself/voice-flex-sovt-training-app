@@ -10,9 +10,9 @@ import {
   SlidersHorizontal,
   User
 } from "lucide-react";
-import { resetAllLocalMilestones } from "@/lib/local-milestones";
-import { trainingProgressStore } from "@/lib/training-progress";
-import type { VoiceFlexProduct } from "@/lib/training-product";
+import { notifyLocalChange } from "@/lib/local-change";
+import { forgetTrainingIdentity, getTrainingIdentity, type TrainingIdentity } from "@/lib/training-identity";
+import { isVoiceFlexProduct, type VoiceFlexProduct } from "@/lib/training-product";
 
 type ProductType = VoiceFlexProduct;
 
@@ -63,28 +63,25 @@ function saveLocalSettings(settings: LocalSettings) {
       displayName: settings.displayName
     })
   );
+  notifyLocalChange();
 }
+
+const PRODUCT_NAMES: Record<ProductType, string> = {
+  go: "Voice Flex GO",
+  pro: "Voice Flex Pro",
+  core: "Voice Flex Core"
+};
 
 function getLocalProduct(): ProductType {
   if (typeof window === "undefined") return "go";
   const stored = window.localStorage.getItem("voiceflex_active_product");
-  return stored === "pro" ? "pro" : "go";
+  return isVoiceFlexProduct(stored) ? stored : "go";
 }
 
 function getRouteProduct(pathname: string | null): ProductType | null {
   if (!pathname?.startsWith("/train/")) return null;
-  return pathname.split("/")[2] === "pro" ? "pro" : "go";
-}
-
-function getLocalOrderAccessId() {
-  if (typeof window === "undefined") return "Order Access ID unavailable";
-
-  return (
-    window.localStorage.getItem("voiceflex_verified_order_number") ||
-    window.localStorage.getItem("voiceflex_order_number") ||
-    window.localStorage.getItem("voiceflex_order_access_id") ||
-    "Order Access ID unavailable"
-  );
+  const product = pathname.split("/")[2];
+  return isVoiceFlexProduct(product) ? product : null;
 }
 
 export function SettingsContent() {
@@ -92,20 +89,19 @@ export function SettingsContent() {
   const pathname = usePathname();
   const [settings, setSettings] = useState<LocalSettings>(defaultSettings);
   const [productType, setProductType] = useState<ProductType>("go");
-  const [orderAccessId, setOrderAccessId] = useState("Order Access ID unavailable");
+  const [identity, setIdentity] = useState<TrainingIdentity | null>(null);
   const [saved, setSaved] = useState(false);
-  const [resetNotice, setResetNotice] = useState("");
 
-  const productName = productType === "pro" ? "Voice Flex PRO" : "Voice Flex GO";
+  const productName = PRODUCT_NAMES[productType];
+  const orderAccessId = identity?.orderNumber ?? "Order Access ID unavailable";
 
   useEffect(() => {
     const nextSettings = safeReadSettings();
     const nextProduct = getRouteProduct(pathname) ?? getLocalProduct();
-    const nextOrderAccessId = getLocalOrderAccessId();
 
     setSettings(nextSettings);
     setProductType(nextProduct);
-    setOrderAccessId(nextOrderAccessId);
+    setIdentity(getTrainingIdentity(nextProduct));
   }, [pathname]);
 
   const defaultDevice = useMemo(() => productName, [productName]);
@@ -116,21 +112,15 @@ export function SettingsContent() {
     window.setTimeout(() => setSaved(false), 1800);
   }
 
-  function handleResetPreferences() {
-    const confirmed = window.confirm("Reset local setup and return to onboarding?");
-    if (!confirmed) return;
-
-    const nextSettings = { ...defaultSettings };
-
-    trainingProgressStore.resetProgress(productType);
-    resetAllLocalMilestones();
-    setSettings(nextSettings);
-    saveLocalSettings(nextSettings);
-    setSaved(false);
-    router.push(`/train/${productType}`);
+  // Progress is saved with the order, so signing out of this device or switching person loses nothing.
+  function handleSwitchPerson() {
+    forgetTrainingIdentity(productType);
+    router.push("/");
   }
 
   function handleLogout() {
+    forgetTrainingIdentity(productType);
+    window.localStorage.removeItem("voiceflex_verified_order_number");
     router.push("/");
   }
 
@@ -176,7 +166,7 @@ export function SettingsContent() {
                     disabled
                     className="mt-3 h-12 w-full rounded-lg border border-slate-300 bg-slate-100 px-4 text-base font-medium text-slate-500"
                   />
-                  <p className="mt-3 text-sm text-slate-600">This ID is linked to your Voice Flex product.</p>
+                  <p className="mt-3 text-sm text-slate-600">Use it to open your training on another device.</p>
                 </div>
               </div>
             </div>
@@ -186,25 +176,40 @@ export function SettingsContent() {
             <SectionTitle icon={<SlidersHorizontal className="h-8 w-8" />} title="Preferences" subtitle="Customize your app experience." />
 
             <div className="mt-8 divide-y divide-slate-200">
+              {identity && identity.seats > 1 ? (
+                <PreferenceRow
+                  title="Who's training"
+                  description={`${identity.profileName ?? `Person ${identity.profileSlot}`} - one of ${identity.seats} people on this order. Each person keeps their own progress.`}
+                  control={
+                    <button
+                      type="button"
+                      onClick={handleSwitchPerson}
+                      className="h-11 rounded-lg border border-blue-600 px-5 text-sm font-black text-blue-700 transition hover:bg-blue-50"
+                    >
+                      Switch person
+                    </button>
+                  }
+                />
+              ) : null}
               <PreferenceRow
-                title="Reset Local Preferences"
-                description="This will reset local setup and preferences on this device."
+                title="Welcome guide"
+                description="See the setup steps for your kit again."
                 control={
                   <button
                     type="button"
-                    onClick={handleResetPreferences}
-                    className="h-11 rounded-lg border border-red-500 px-5 text-sm font-black text-red-600 transition hover:bg-red-50"
+                    onClick={() => router.push(`/train/${productType}?setup=1`)}
+                    className="h-11 rounded-lg border border-slate-300 px-5 text-sm font-black text-slate-700 transition hover:bg-slate-50"
                   >
-                    Reset Preferences
+                    Open guide
                   </button>
                 }
               />
+              <PreferenceRow
+                title="Your progress is saved"
+                description="Your routines, streak and milestones are saved with your order number. Sign in on any phone or computer to pick up where you left off."
+                control={null}
+              />
             </div>
-            {resetNotice ? (
-              <p className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-700">
-                {resetNotice}
-              </p>
-            ) : null}
           </section>
 
           <section className="rounded-[22px] border border-slate-200 bg-white p-7 shadow-[0_18px_50px_rgba(15,23,42,0.08)] lg:p-8">
@@ -222,7 +227,7 @@ export function SettingsContent() {
               className="flex h-12 w-full max-w-[560px] items-center justify-center gap-3 rounded-lg border border-red-500 bg-white text-sm font-black text-red-600 transition hover:bg-red-50"
             >
               <LogOut className="h-5 w-5" />
-              Logout
+              Sign out of this device
             </button>
           </div>
         </div>

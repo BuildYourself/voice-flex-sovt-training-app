@@ -13,6 +13,7 @@ import {
 
 import { ConfettiBackground } from "@/components/confetti-background";
 import type { VerifiedOrderProduct } from "@/lib/order-access";
+import { getKitPhoto } from "@/lib/kits";
 
 type OrderVerificationSuccessProps = {
   product: VerifiedOrderProduct;
@@ -39,17 +40,8 @@ const benefitItems: { Icon: LucideIcon; title: string; text: string }[] = [
 ];
 
 function ProductVisual({ product }: { product: VerifiedOrderProduct }) {
-  if (product.productType === "core") {
-    return (
-      <div className="mx-auto my-5 grid h-44 w-full max-w-md place-items-center rounded-[1.75rem] bg-gradient-to-br from-slate-100 to-blue-50" aria-label="Voice Flex Core">
-        <div className="flex flex-col items-center gap-2">
-          <Waves className="h-16 w-16 text-slate-800" aria-hidden="true" />
-          <span className="text-xl font-black text-slate-900">Voice Flex CORE</span>
-        </div>
-      </div>
-    );
-  }
-  const imageSrc = product.productType === "pro" ? "/images/voiceflexpro.png" : "/images/voiceflexgo.png";
+  // A photo of the kit they ordered: straw set or caps set, black or light colours, black or blue GO.
+  const imageSrc = getKitPhoto(product.productType, product.kit, product.sourceAsin);
 
   return (
     <div className="relative mx-auto grid h-44 w-full max-w-md place-items-center overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-white via-blue-50/70 to-white">
@@ -73,8 +65,12 @@ export function OrderVerificationSuccess({
 }: OrderVerificationSuccessProps) {
   const productDescription =
     product.productType === "pro"
-      ? "Bottle + straw SOVT training with guided bubble massage setup."
-      : "Lightweight, portable SOVT training wherever you are.";
+      ? product.kit === "pro_classic"
+        ? "Bottle + straw SOVT training with guided bubble massage setup."
+        : "Straws, resistance caps and a water cup for guided SOVT training."
+      : product.productType === "core"
+        ? "Straws and resistance caps for guided SOVT training, no water needed."
+        : "Lightweight, portable SOVT training wherever you are.";
   const productBadge = product.productType === "go" ? "GO" : product.productType === "core" ? "Core" : "Pro";
 
   return (
@@ -103,7 +99,7 @@ export function OrderVerificationSuccess({
           </div>
         </div>
 
-        <h1 className="mt-5 text-5xl font-black tracking-tight text-navy-950 md:text-6xl">
+        <h1 className="mt-5 text-[38px] font-black leading-tight tracking-tight text-navy-950 sm:text-5xl md:text-6xl">
           Congratulations!
         </h1>
         <p className="mt-2 text-xl font-black text-blue-600 md:text-2xl">
@@ -118,7 +114,7 @@ export function OrderVerificationSuccess({
             Your product
           </p>
           <h2 className="mt-3 flex items-center justify-center gap-3 text-4xl font-black tracking-tight text-navy-950">
-            {product.productType === "go" || product.productType === "core" ? "Voice Flex" : product.productName}
+            Voice Flex
             <span
               className={`rounded-lg px-3 py-1 text-2xl font-black text-white ${
                 product.productType === "go" ? "bg-blue-600" : "bg-slate-950"
@@ -127,6 +123,11 @@ export function OrderVerificationSuccess({
               {productBadge}
             </span>
           </h2>
+          {product.seats > 1 ? (
+            <p className="mt-1 text-base font-bold text-blue-700">
+              Training as {product.profileName ?? `Person ${product.profileSlot}`}
+            </p>
+          ) : null}
           <ProductVisual product={product} />
           <p className="mx-auto mt-1 max-w-md text-xl leading-7 text-slate-600">
             {productDescription}
@@ -154,7 +155,7 @@ export function OrderVerificationSuccess({
           <button
             type="button"
             onClick={onContinue}
-            className="inline-flex h-16 w-full items-center justify-center gap-6 rounded-2xl bg-blue-600 px-8 text-2xl font-black text-white shadow-xl shadow-blue-200 transition hover:bg-blue-700"
+            className="inline-flex h-16 w-full items-center justify-center gap-4 rounded-2xl bg-blue-600 px-6 text-xl font-black text-white shadow-xl shadow-blue-200 transition hover:bg-blue-700 sm:gap-6 sm:px-8 sm:text-2xl"
           >
             Continue to Training
             <ArrowRight className="h-8 w-8" />

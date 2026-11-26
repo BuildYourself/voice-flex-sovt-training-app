@@ -7,10 +7,14 @@ import {
   ensureOrderProgress,
   getLocalDateString,
   getServerEnvironment,
+  PROFILE_NOT_FOUND,
+  requestProfileSlot,
   resolveVerifiedOrder,
   secondsToClock,
   secondsToMinutes,
 } from "@/lib/order-progress-server";
+import { getKitProfile } from "@/lib/kits";
+import { getRoutineBySlot } from "@/lib/routines";
 import { isVoiceFlexProduct } from "@/lib/training-product";
 import {
   formatSessionDuration,
@@ -24,12 +28,16 @@ type ProgressRequest = {
   orderNumber?: unknown;
   productType?: unknown;
   month?: unknown;
+  /** The user's local date (YYYY-MM-DD). The server clock is UTC. */
+  today?: unknown;
+  /** Which person on a multi-unit order (1 = first). */
+  profileSlot?: unknown;
 };
 
 const ERROR_RESPONSE = {
   ok: false,
   status: "server_error",
-  message: "We couldn’t load your progress right now. Please try again later.",
+  message: "We couldn't load your progress right now. Please try again later.",
 } as const;
 
 function monthKey(dateString: string) {
@@ -71,9 +79,15 @@ export async function POST(request: Request) {
     }
 
     const productType = verified.product.productType;
-    const progress = await ensureOrderProgress(supabase, verified.order.id, productType);
-    const session = getTrainingSessionConfig(productType);
-    const today = getLocalDateString();
+    const profileSlot = requestProfileSlot(body.profileSlot, verified.seats);
+    if (!profileSlot) {
+      return NextResponse.json(PROFILE_NOT_FOUND, { status: 403 });
+    }
+    const progress = await ensureOrderProgress(supabase, verified.order.id, productType, profileSlot);
+    const kit = verified.kit;
+    const session = getTrainingSessionConfig(productType, kit, "daily");
+    const today =
+      typeof body.today === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.today) ? body.today : getLocalDateString();
 
     const { data: activityRows, error: activityError } = await supabase
       .from("voiceflex_daily_activity")
@@ -82,6 +96,7 @@ export async function POST(request: Request) {
       )
       .eq("order_access_id", verified.order.id)
       .eq("product_type", productType)
+      .eq("profile_slot", profileSlot)
       .order("activity_date", { ascending: false })
       .returns<DailyActivityRow[]>();
 
@@ -97,13 +112,41 @@ export async function POST(request: Request) {
     const exercisesCompleted = progress.exercises_completed_count ?? 0;
     const fullSessions = progress.full_sessions_completed ?? 0;
     const lastPracticeDate = progress.last_practice_date ?? null;
-    const todayRow = rows.find((row) => row.activity_date === today);
+    // program_day holds the routine slot. Slot 1 is the Daily Session.
+    const todayRow = rows.find((row) => row.activity_date === today && (row.program_day ?? 1) === 1);
+    const todayRoutines = rows
+      .filter((row) => row.activity_date === today)
+      .map((row) => {
+        const routine = getRoutineBySlot(row.program_day);
+        return {
+          routineId: routine.id,
+          title: routine.title,
+          completedCount: row.completed_exercise_ids?.length ?? 0,
+          fullSessionCompleted: Boolean(row.full_session_completed),
+          secondsPracticed: row.seconds_practiced ?? 0,
+        };
+      });
+    const calendarByDate: Record<string, { secondsPracticed: number; completedCount: number; fullSessionCompleted: boolean; routines: string[] }> = {};
+    rows
+      .filter((row) => monthKey(row.activity_date) === requestedMonth)
+      .forEach((row) => {
+        const entry = (calendarByDate[row.activity_date] ??= {
+          secondsPracticed: 0,
+          completedCount: 0,
+          fullSessionCompleted: false,
+          routines: [],
+        });
+        entry.secondsPracticed += row.seconds_practiced ?? 0;
+        entry.completedCount += row.completed_exercise_ids?.length ?? 0;
+        entry.fullSessionCompleted = entry.fullSessionCompleted || Boolean(row.full_session_completed);
+        if (row.full_session_completed) entry.routines.push(getRoutineBySlot(row.program_day).title);
+      });
     const todayCompletedIds = todayRow?.completed_exercise_ids ?? [];
     const todaySeconds = todayRow?.seconds_practiced ?? 0;
     const currentIndex = session.exercises.findIndex((exercise) => !todayCompletedIds.includes(exercise.id));
     const safeCurrentIndex = currentIndex === -1 ? session.exercises.length - 1 : currentIndex;
     const currentExercise = session.exercises[safeCurrentIndex];
-    const sessionTotalSeconds = getSessionTotalSeconds(productType);
+    const sessionTotalSeconds = getSessionTotalSeconds(productType, kit, "daily");
     const todayPercent = session.exercises.length
       ? Math.round((todayCompletedIds.length / session.exercises.length) * 100)
       : 0;
@@ -115,7 +158,11 @@ export async function POST(request: Request) {
       orderNumber: verified.order.amazon_order_number,
       productType,
       productName: verified.product.productName,
-      currentDay: progress.current_day ?? session.day,
+      kit,
+      kitName: getKitProfile(kit).name,
+      sourceAsin: verified.sourceAsin,
+      // Kept for older clients. The app no longer shows program days.
+      currentDay: progress.current_day ?? 1,
       stats: {
         practiceStreak,
         totalSeconds,
@@ -135,6 +182,7 @@ export async function POST(request: Request) {
         displayPracticed: secondsToClock(todaySeconds),
         currentExerciseId: currentExercise?.id ?? null,
         currentExerciseTitle: currentExercise?.title ?? null,
+        routines: todayRoutines,
       },
       session: {
         totalSeconds: sessionTotalSeconds,
@@ -153,18 +201,7 @@ export async function POST(request: Request) {
       },
       calendar: {
         month: requestedMonth,
-        activityByDate: Object.fromEntries(
-          rows
-            .filter((row) => monthKey(row.activity_date) === requestedMonth)
-            .map((row) => [
-              row.activity_date,
-              {
-                secondsPracticed: row.seconds_practiced ?? 0,
-                completedCount: row.completed_exercise_ids?.length ?? 0,
-                fullSessionCompleted: Boolean(row.full_session_completed),
-              },
-            ]),
-        ),
+        activityByDate: calendarByDate,
       },
       milestones: [
         {
@@ -174,14 +211,14 @@ export async function POST(request: Request) {
           target: 1,
         },
         {
-          title: "First Session",
+          title: "First Full Routine",
           status: fullSessions >= 1 ? "completed" : "locked",
           current: Math.min(fullSessions, 1),
           target: 1,
         },
         {
           title: "3 Practice Days",
-          status: practiceDates.length >= 3 ? "completed" : "in-progress",
+          status: new Set(practiceDates).size >= 3 ? "completed" : "in-progress",
           current: Math.min(new Set(practiceDates).size, 3),
           target: 3,
         },
@@ -194,12 +231,12 @@ export async function POST(request: Request) {
       ],
       recentActivity: rows.slice(0, 5).map((row) => ({
         date: row.activity_date,
-        label: `${dateLabel(row.activity_date)} • Day ${row.program_day ?? 1}`,
+        label: `${dateLabel(row.activity_date)} • ${getRoutineBySlot(row.program_day).title}`,
         subtitle: row.full_session_completed
-          ? "Full session completed"
+          ? "Routine completed"
           : `${row.completed_exercise_ids?.length ?? 0} exercises completed`,
         secondsPracticed: row.seconds_practiced ?? 0,
-        displayDuration: row.seconds_practiced ? secondsToClock(row.seconds_practiced) : "—",
+        displayDuration: row.seconds_practiced ? secondsToClock(row.seconds_practiced) : "-",
         status: row.full_session_completed ? "full" : "partial",
       })),
     });
