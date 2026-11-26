@@ -1,3 +1,4 @@
+import { notifyLocalChange } from "@/lib/local-change";
 import { ACTIVE_PRODUCT_KEY, isVoiceFlexProduct, type VoiceFlexProduct } from "@/lib/training-product";
 
 export const TRAINING_PROGRESS_KEYS: Record<VoiceFlexProduct, string> = {
@@ -154,7 +155,9 @@ export function updateProgress(productType: VoiceFlexProduct, partialUpdate: Par
 }
 
 export function markOnboardingCompleted(productType: VoiceFlexProduct): LocalTrainingProgress {
-  return updateProgress(productType, { onboardingCompleted: true });
+  const progress = updateProgress(productType, { onboardingCompleted: true });
+  notifyLocalChange();
+  return progress;
 }
 
 export function resetProgress(productType: VoiceFlexProduct): LocalTrainingProgress {

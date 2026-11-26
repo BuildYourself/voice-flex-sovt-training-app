@@ -32,6 +32,7 @@ import { ExerciseGuidePanel } from "@/components/exercise-guide-panel";
 import { ReviewRequest } from "@/components/review-request";
 import { TrainingSidebar } from "@/components/training-sidebar";
 import { useTrainingProgress } from "@/hooks/use-training-progress";
+import { getIdentityRequestFields } from "@/lib/training-identity";
 import { getMilestoneOrderAccessId, loadLocalMilestones, recordLocalExerciseCompletion, recordLocalFullSessionCompletion } from "@/lib/local-milestones";
 import { cn } from "@/lib/utils";
 import { getVoiceRange, GuideTonePlayer, setVoiceRange as storeVoiceRange, type VoiceRange } from "@/lib/guide-tones";
@@ -49,7 +50,6 @@ import {
 
 type SessionMode = "ready" | "practice" | "paused" | "complete";
 
-const VERIFIED_ORDER_NUMBER_KEY = "voiceflex_verified_order_number";
 function getLocalDateString(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
@@ -297,9 +297,9 @@ export function TrainingSession({ productType, routineId = "daily" }: { productT
   }
 
   async function syncCompletedExercise(step: TrainingSessionExercise) {
-    const orderNumber = window.localStorage.getItem(VERIFIED_ORDER_NUMBER_KEY);
+    const identity = getIdentityRequestFields(productType);
 
-    if (!orderNumber) {
+    if (!identity) {
       console.warn("[training-session] Skipping remote progress sync because no verified order is stored.");
       return false;
     }
@@ -311,7 +311,7 @@ export function TrainingSession({ productType, routineId = "daily" }: { productT
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          orderNumber,
+          ...identity,
           productType,
           programDay: slot,
           exerciseId: step.id,

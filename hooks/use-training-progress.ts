@@ -3,13 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { getStoredKit, isVoiceFlexKit, setStoredKit, type VoiceFlexKit } from "@/lib/kits";
 import { setOrderAsin } from "@/lib/review-request";
+import { getIdentityRequestFields } from "@/lib/training-identity";
 import { getActiveProduct, setActiveProduct, type VoiceFlexProduct } from "@/lib/training-product";
 import {
   trainingProgressStore,
   type LocalTrainingProgress
 } from "@/lib/training-progress";
-
-const VERIFIED_ORDER_NUMBER_KEY = "voiceflex_verified_order_number";
 
 function localDateString(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -120,8 +119,8 @@ export function useTrainingProgress(initialProduct?: VoiceFlexProduct) {
   const refreshProgressStats = useCallback(async () => {
     if (typeof window === "undefined" || !activeProduct) return null;
 
-    const orderNumber = window.localStorage.getItem(VERIFIED_ORDER_NUMBER_KEY);
-    if (!orderNumber) {
+    const identity = getIdentityRequestFields(activeProduct);
+    if (!identity) {
       setRemoteStats(null);
       setProgressStatsError(null);
       return null;
@@ -134,7 +133,7 @@ export function useTrainingProgress(initialProduct?: VoiceFlexProduct) {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          orderNumber,
+          ...identity,
           productType: activeProduct,
           today: localDateString()
         })

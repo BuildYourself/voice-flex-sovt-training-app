@@ -1,3 +1,4 @@
+import { notifyLocalChange } from "@/lib/local-change";
 import type { VoiceFlexProduct } from "@/lib/training-product";
 
 /**
@@ -101,6 +102,7 @@ function writeState(productType: VoiceFlexProduct, state: ReviewState) {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(stateKey(productType), JSON.stringify(state));
+    notifyLocalChange();
   } catch {
     // Ignore.
   }

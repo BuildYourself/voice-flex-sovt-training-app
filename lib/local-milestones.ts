@@ -411,3 +411,69 @@ export function resetAllLocalMilestones() {
     .filter((key) => key.startsWith(MILESTONE_STORAGE_PREFIX))
     .forEach((key) => window.localStorage.removeItem(key));
 }
+
+export type MilestoneActivityRow = {
+  activity_date: string;
+  program_day: number | null;
+  completed_exercise_ids: string[] | null;
+  seconds_practiced: number | null;
+  full_session_completed: boolean | null;
+};
+
+function dayNumber(dateString: string) {
+  const [year, month, day] = dateString.split("-").map(Number);
+  return Math.floor(Date.UTC(year, month - 1, day) / 86_400_000);
+}
+
+/** Consecutive practice days ending on the last practice date (same rule as the live counter). */
+function streakEndingOnLastDay(sortedDates: string[]) {
+  if (!sortedDates.length) return 0;
+  let streak = 1;
+  for (let index = sortedDates.length - 1; index > 0; index -= 1) {
+    if (dayNumber(sortedDates[index]) - dayNumber(sortedDates[index - 1]) !== 1) break;
+    streak += 1;
+  }
+  return streak;
+}
+
+/**
+ * Rebuild the milestone state from the saved daily activity, so milestones follow the user to any device.
+ * exerciseSeconds(slot, exerciseId) gives the length of an exercise inside that routine.
+ */
+export function buildMilestoneStateFromActivity(
+  productType: VoiceFlexProduct,
+  rows: MilestoneActivityRow[],
+  exerciseSeconds: (slot: number, exerciseId: string) => number,
+  unlockedMilestones: LocalMilestoneState["unlockedMilestones"] = {},
+): LocalMilestoneState {
+  const state = defaultState(productType);
+  const practiceDays = new Set<string>();
+
+  for (const row of rows) {
+    const ids = Array.from(new Set(row.completed_exercise_ids ?? []));
+    const slot = row.program_day ?? 1;
+    if (ids.length || (row.seconds_practiced ?? 0) > 0) practiceDays.add(row.activity_date);
+    state.totals.totalSeconds += row.seconds_practiced ?? 0;
+    state.totals.exercisesCompleted += ids.length;
+    if (row.full_session_completed) state.totals.fullSessionsCompleted += 1;
+
+    for (const id of ids) {
+      const exercise = getExercise(id);
+      const category = getExerciseCategory(id, exercise?.title ?? id);
+      state.exerciseStats[category] += 1;
+      const skills = exercise?.skills ?? [];
+      if (skills.includes("breath")) state.focusStats.breathSeconds += exerciseSeconds(slot, id);
+      if (skills.includes("flexibility")) state.focusStats.flexibilityCount += 1;
+      if (skills.includes("pitch")) state.focusStats.pitchExerciseCount += 1;
+      if (skills.includes("speaking")) state.focusStats.speakingCount += 1;
+    }
+  }
+
+  const sortedDays = Array.from(practiceDays).sort();
+  state.totals.practiceDays = sortedDays;
+  state.totals.currentStreak = streakEndingOnLastDay(sortedDays);
+  state.totals.lastPracticeDate = sortedDays.length ? sortedDays[sortedDays.length - 1] : null;
+  state.focusStats.consistencyDays = sortedDays.length;
+
+  return withUnlockedMilestones({ ...state, unlockedMilestones: { ...unlockedMilestones } });
+}

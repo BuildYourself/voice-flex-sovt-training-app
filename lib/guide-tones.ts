@@ -1,3 +1,5 @@
+import { notifyLocalChange } from "@/lib/local-change";
+
 /**
  * Guide tones made in the browser with the Web Audio API, so there are no
  * audio files to record or host. A one-time "lower voice / higher voice"
@@ -26,7 +28,9 @@ export function getVoiceRange(): VoiceRange | null {
 export function setVoiceRange(range: VoiceRange) {
   if (typeof window === "undefined") return;
   try {
+    if (window.localStorage.getItem(VOICE_RANGE_KEY) === range) return;
     window.localStorage.setItem(VOICE_RANGE_KEY, range);
+    notifyLocalChange();
   } catch {
     // Storage blocked: the choice still applies until the page reloads.
   }
@@ -218,7 +222,10 @@ export function saveBestHold(productType: string, seconds: number) {
   if (typeof window === "undefined") return;
   try {
     const current = getBestHold(productType);
-    if (seconds > current) window.localStorage.setItem(`voiceflex_best_hold_${productType}`, String(Math.round(seconds * 10) / 10));
+    if (seconds > current) {
+      window.localStorage.setItem(`voiceflex_best_hold_${productType}`, String(Math.round(seconds * 10) / 10));
+      notifyLocalChange();
+    }
   } catch {
     // Ignore storage errors.
   }

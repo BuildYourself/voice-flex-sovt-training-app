@@ -7,6 +7,8 @@ import {
   ensureOrderProgress,
   getLocalDateString,
   getServerEnvironment,
+  PROFILE_NOT_FOUND,
+  requestProfileSlot,
   resolveVerifiedOrder,
   secondsToClock,
   secondsToMinutes,
@@ -28,6 +30,8 @@ type ProgressRequest = {
   month?: unknown;
   /** The user's local date (YYYY-MM-DD). The server clock is UTC. */
   today?: unknown;
+  /** Which person on a multi-unit order (1 = first). */
+  profileSlot?: unknown;
 };
 
 const ERROR_RESPONSE = {
@@ -75,7 +79,11 @@ export async function POST(request: Request) {
     }
 
     const productType = verified.product.productType;
-    const progress = await ensureOrderProgress(supabase, verified.order.id, productType);
+    const profileSlot = requestProfileSlot(body.profileSlot, verified.seats);
+    if (!profileSlot) {
+      return NextResponse.json(PROFILE_NOT_FOUND, { status: 403 });
+    }
+    const progress = await ensureOrderProgress(supabase, verified.order.id, productType, profileSlot);
     const kit = verified.kit;
     const session = getTrainingSessionConfig(productType, kit, "daily");
     const today =
@@ -88,6 +96,7 @@ export async function POST(request: Request) {
       )
       .eq("order_access_id", verified.order.id)
       .eq("product_type", productType)
+      .eq("profile_slot", profileSlot)
       .order("activity_date", { ascending: false })
       .returns<DailyActivityRow[]>();
 

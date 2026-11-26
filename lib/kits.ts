@@ -1,3 +1,4 @@
+import { notifyLocalChange } from "@/lib/local-change";
 import type { VoiceFlexProduct } from "@/lib/training-product";
 
 /**
@@ -166,7 +167,10 @@ export function setStoredKit(productType: VoiceFlexProduct, kit: VoiceFlexKit, s
   const existing = readStoredKit(productType);
   if (source === "order" && existing?.source === "manual") return;
   try {
-    window.localStorage.setItem(kitStorageKey(productType), JSON.stringify({ kit, source }));
+    const next = JSON.stringify({ kit, source });
+    if (window.localStorage.getItem(kitStorageKey(productType)) === next) return;
+    window.localStorage.setItem(kitStorageKey(productType), next);
+    notifyLocalChange();
   } catch {
     // Storage can be full or blocked. The default kit still works.
   }

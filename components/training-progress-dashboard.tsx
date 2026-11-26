@@ -18,6 +18,7 @@ import {
   Trophy,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { getIdentityRequestFields } from "@/lib/training-identity";
 
 import { cn } from "@/lib/utils";
 import { TrainingSidebar } from "@/components/training-sidebar";
@@ -31,7 +32,6 @@ import {
   VoiceFlexWavePattern
 } from "@/components/visuals/voice-flex-progress-visuals";
 
-const VERIFIED_ORDER_NUMBER_KEY = "voiceflex_verified_order_number";
 
 type ProgressExercise = {
   id: string;
@@ -791,8 +791,8 @@ export function TrainingProgressDashboard({ productType }: { productType: VoiceF
     let cancelled = false;
 
     async function loadProgress() {
-      const orderNumber = window.localStorage.getItem(VERIFIED_ORDER_NUMBER_KEY);
-      if (!orderNumber) {
+      const identity = getIdentityRequestFields(productType);
+      if (!identity) {
         setError("Verify your Amazon order first to unlock progress tracking.");
         setLoading(false);
         return;
@@ -802,7 +802,7 @@ export function TrainingProgressDashboard({ productType }: { productType: VoiceF
         const response = await fetch("/api/progress", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orderNumber, productType, today: localDateString() }),
+          body: JSON.stringify({ ...identity, productType, today: localDateString() }),
         });
         const payload = (await response.json()) as unknown;
 

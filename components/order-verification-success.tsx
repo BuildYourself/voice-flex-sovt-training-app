@@ -129,6 +129,11 @@ export function OrderVerificationSuccess({
               {productBadge}
             </span>
           </h2>
+          {product.seats > 1 ? (
+            <p className="mt-1 text-base font-bold text-blue-700">
+              Training as {product.profileName ?? `Person ${product.profileSlot}`}
+            </p>
+          ) : null}
           <ProductVisual product={product} />
           <p className="mx-auto mt-1 max-w-md text-xl leading-7 text-slate-600">
             {productDescription}

@@ -4,14 +4,24 @@ import {
   createVoiceFlexAdminClient,
   ensureOrderProgress,
   getServerEnvironment,
+  listOrderProfiles,
+  normalizeProfileName,
+  parseProfileSlot,
   resolveVerifiedOrder,
   SERVER_ERROR_RESPONSE,
 } from "@/lib/order-progress-server";
+import { isVoiceFlexProduct } from "@/lib/training-product";
 
 export const runtime = "nodejs";
 
 type VerifyOrderRequest = {
   orderNumber?: unknown;
+  /** For orders with two products: which one this person trains with. */
+  productType?: unknown;
+  /** For orders with 2+ units: which person (1 = first). */
+  profileSlot?: unknown;
+  /** Name for a new profile. */
+  profileName?: unknown;
 };
 
 export async function POST(request: Request) {
@@ -45,7 +55,8 @@ export async function POST(request: Request) {
     }
 
     const supabase = createVoiceFlexAdminClient(env);
-    const result = await resolveVerifiedOrder(supabase, env, orderNumber);
+    const requestedProduct = isVoiceFlexProduct(body.productType) ? body.productType : undefined;
+    const result = await resolveVerifiedOrder(supabase, env, orderNumber, requestedProduct);
 
     if (!result.ok) {
       const statusCode =
@@ -53,7 +64,48 @@ export async function POST(request: Request) {
       return NextResponse.json(result, { status: statusCode });
     }
 
-    await ensureOrderProgress(supabase, result.order.id, result.product.productType);
+    const products = result.products.map((entry) => ({
+      productType: entry.productType,
+      productName: entry.productName,
+      units: entry.units,
+    }));
+
+    // Two products in one order (e.g. Pro + GO): ask which one first.
+    if (!requestedProduct && products.length > 1) {
+      return NextResponse.json({
+        ok: true,
+        status: "choose_product",
+        orderNumber: result.order.amazon_order_number,
+        products,
+      });
+    }
+
+    const productType = result.product.productType;
+    const seats = result.seats;
+    let profileSlot = 1;
+    let profileName: string | null = null;
+
+    // 2+ units: every person gets their own profile, so ask who is training.
+    if (seats > 1) {
+      const requestedSlot = parseProfileSlot(body.profileSlot, seats);
+      if (!requestedSlot) {
+        const profiles = await listOrderProfiles(supabase, result.order.id, productType);
+        return NextResponse.json({
+          ok: true,
+          status: "choose_profile",
+          orderNumber: result.order.amazon_order_number,
+          productType,
+          productName: result.product.productName,
+          seats,
+          profiles,
+          products,
+        });
+      }
+      profileSlot = requestedSlot;
+      profileName = normalizeProfileName(body.profileName);
+    }
+
+    const progress = await ensureOrderProgress(supabase, result.order.id, productType, profileSlot, profileName);
 
     return NextResponse.json(
       {
@@ -67,6 +119,10 @@ export async function POST(request: Request) {
         productType: result.product.productType,
         productName: result.product.productName,
         trainingRoute: result.product.trainingRoute,
+        profileSlot,
+        profileName: progress.profile_name ?? null,
+        seats,
+        products,
       },
       { status: 200 },
     );
