@@ -944,20 +944,22 @@ function MobileTrainingSession({
           </div>
 
           <div className="mt-5 grid grid-cols-2 gap-3">
-            <Button className="col-span-2 h-14 rounded-2xl text-base font-black shadow-blue md:col-span-1" onClick={onPracticeClick} disabled={allComplete}>
+            <Button className="col-span-2 h-14 rounded-2xl text-base font-black shadow-blue" onClick={onPracticeClick} disabled={allComplete}>
               {mode === "practice" ? <Pause className="mr-2 h-5 w-5 fill-current" /> : <Play className="mr-2 h-5 w-5 fill-current" />}
               {actionLabel}
             </Button>
-            <Button
-              variant="outline"
-              className="h-14 rounded-2xl border-blue-200 bg-white text-base font-black text-electric-700"
-              type="button"
-              disabled={mode === "practice" || !currentStep.demoAudioSrc}
-              onClick={() => onToggleDemo(currentStep)}
-            >
-              {playingAudio === "demo" ? <Pause className="mr-2 h-5 w-5 fill-current" /> : <Play className="mr-2 h-5 w-5 fill-current" />}
-              Demo
-            </Button>
+            {currentStep.demoAudioSrc ? (
+              <Button
+                variant="outline"
+                className="col-span-2 h-12 rounded-2xl border-blue-200 bg-white text-base font-black text-electric-700"
+                type="button"
+                disabled={mode === "practice"}
+                onClick={() => onToggleDemo(currentStep)}
+              >
+                {playingAudio === "demo" ? <Pause className="mr-2 h-5 w-5 fill-current" /> : <Play className="mr-2 h-5 w-5 fill-current" />}
+                Hear how it sounds
+              </Button>
+            ) : null}
             <Button variant="outline" className="h-12 rounded-2xl border-slate-200 bg-white font-black text-electric-700" onClick={onPrevious} disabled={currentStepIndex === 0}>
               <SkipBack className="mr-2 h-4 w-4" />
               Previous

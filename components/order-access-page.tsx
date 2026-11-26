@@ -48,7 +48,7 @@ const productCards = [
     badge: "CORE",
     text: "Adjustable resistance with guided vocal training.",
     type: "core",
-    imageSrc: null,
+    imageSrc: "/images/voiceflexcore.webp",
   },
 ] as const;
 
@@ -86,8 +86,8 @@ function BackgroundWaves() {
 
 function ProductCard({ product }: { product: (typeof productCards)[number] }) {
   return (
-    <div className="flex min-h-32 items-center gap-5 rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
-      <div className="relative grid h-24 w-36 shrink-0 place-items-center overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 via-white to-blue-50/70">
+    <div className="flex min-h-32 items-center gap-4 rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-[0_18px_50px_rgba(15,23,42,0.08)] sm:gap-5">
+      <div className="relative grid h-24 w-28 shrink-0 place-items-center overflow-hidden rounded-2xl sm:w-36 bg-gradient-to-br from-blue-50 via-white to-blue-50/70">
         {product.imageSrc ? (
           <Image
             src={product.imageSrc}
@@ -102,8 +102,8 @@ function ProductCard({ product }: { product: (typeof productCards)[number] }) {
         )}
       </div>
       <div className="min-w-0 flex-1 text-left">
-        <h3 className="flex items-center gap-2 text-xl font-black tracking-tight text-navy-950">
-          {product.title}
+        <h3 className="flex flex-wrap items-center gap-x-2 gap-y-1 text-lg font-black leading-tight tracking-tight text-navy-950 sm:text-xl">
+          <span className="whitespace-nowrap">{product.title}</span>
           <span
             className={`rounded-md px-2 py-0.5 text-sm font-black text-white ${
               product.type === "go" ? "bg-blue-600" : "bg-slate-950"
@@ -112,7 +112,7 @@ function ProductCard({ product }: { product: (typeof productCards)[number] }) {
             {product.badge}
           </span>
         </h3>
-        <p className="mt-1 text-base leading-6 text-slate-600">
+        <p className="mt-1 text-sm leading-6 text-slate-600 sm:text-base">
           {product.text}
         </p>
       </div>
@@ -200,7 +200,7 @@ export function OrderAccessPage() {
           </p>
         </section>
 
-        <section className="mt-11 w-full max-w-xl rounded-[2rem] border border-slate-200 bg-white/95 p-9 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur">
+        <section className="mt-11 w-full max-w-xl rounded-[2rem] border border-slate-200 bg-white/95 p-6 sm:p-9 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur">
           <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-blue-50 text-blue-700">
             <LockKeyhole className="h-7 w-7" />
           </div>
@@ -220,7 +220,7 @@ export function OrderAccessPage() {
                 if (error) setError("");
               }}
               placeholder="e.g. 123-4567890-1234567"
-              className="mt-4 h-[60px] w-full rounded-xl border border-slate-300 bg-white px-5 text-lg font-semibold text-navy-950 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+              className="mt-4 h-[60px] w-full rounded-xl border border-slate-300 bg-white px-4 text-base font-semibold sm:px-5 sm:text-lg text-navy-950 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
             />
 
             {error ? (

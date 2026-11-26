@@ -630,10 +630,10 @@ function PracticeCalendar({ data }: { data: ProgressPayload }) {
   }
 
   return (
-    <section className="rounded-[24px] border border-[#dbe5f2] bg-white p-7 shadow-[0_18px_42px_rgba(15,23,42,0.08)]">
-      <div className="flex items-center justify-between">
+    <section className="min-w-0 rounded-[24px] border border-[#dbe5f2] bg-white p-4 shadow-[0_18px_42px_rgba(15,23,42,0.08)] sm:p-7">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-xl font-black text-black">Practice Calendar</h2>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <button
             type="button"
             onClick={goToPreviousMonth}
@@ -642,7 +642,7 @@ function PracticeCalendar({ data }: { data: ProgressPayload }) {
           >
             {"<"}
           </button>
-          <p className="min-w-[126px] text-center font-black text-slate-700">{monthTitle(viewedMonth)}</p>
+          <p className="min-w-[110px] text-center font-black text-slate-700 sm:min-w-[126px]">{monthTitle(viewedMonth)}</p>
           <button
             type="button"
             onClick={goToNextMonth}
@@ -653,7 +653,7 @@ function PracticeCalendar({ data }: { data: ProgressPayload }) {
           </button>
         </div>
       </div>
-      <div className="mt-7 grid grid-cols-7 gap-3 text-center text-sm font-bold text-slate-500">
+      <div className="mt-5 grid grid-cols-7 gap-1.5 text-center text-xs font-bold text-slate-500 sm:mt-7 sm:gap-3 sm:text-sm">
         {["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"].map((day) => (
           <span key={day}>{day}</span>
         ))}
@@ -663,7 +663,7 @@ function PracticeCalendar({ data }: { data: ProgressPayload }) {
           return (
             <span
               className={cn(
-                "grid h-9 w-9 place-items-center justify-self-center rounded-full text-sm font-black transition",
+                "grid h-8 w-8 place-items-center justify-self-center rounded-full text-xs font-black transition sm:h-9 sm:w-9 sm:text-sm",
                 !cell.inMonth && "text-slate-300",
                 cell.inMonth && !activity && "bg-slate-100 text-slate-600",
                 activity?.fullSessionCompleted && "bg-emerald-500 text-white shadow-[0_10px_20px_rgba(24,191,133,0.22)]",
@@ -678,7 +678,7 @@ function PracticeCalendar({ data }: { data: ProgressPayload }) {
         })}
       </div>
       <div className="mt-7 flex flex-wrap gap-5 text-sm font-medium text-slate-600">
-        <span><span className="mr-2 inline-block h-3 w-3 rounded-full bg-emerald-500" />Full session</span>
+        <span><span className="mr-2 inline-block h-3 w-3 rounded-full bg-emerald-500" />Routine done</span>
         <span><span className="mr-2 inline-block h-3 w-3 rounded-full bg-amber-400" />Partial practice</span>
         <span><span className="mr-2 inline-block h-3 w-3 rounded-full bg-slate-200" />No practice</span>
         <span><span className="mr-2 inline-block h-3 w-3 rounded-full border-2 border-electric-600" />Today</span>
@@ -696,7 +696,7 @@ function Milestones({ milestones, productType }: { milestones: ProgressMilestone
     "from-violet-50 to-white text-violet-600 border-violet-100",
   ];
   return (
-    <section className="rounded-[24px] border border-[#dbe5f2] bg-white p-7 shadow-[0_18px_42px_rgba(15,23,42,0.08)]">
+    <section className="min-w-0 rounded-[24px] border border-[#dbe5f2] bg-white p-4 shadow-[0_18px_42px_rgba(15,23,42,0.08)] sm:p-7">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-black text-black">Milestones</h2>
         <Link href={`/train/${productType}/milestones`} className="text-sm font-black text-electric-700 hover:text-electric-800">
@@ -747,7 +747,7 @@ function Milestones({ milestones, productType }: { milestones: ProgressMilestone
 
 function RecentActivityList({ recentActivity }: { recentActivity: RecentActivity[] }) {
   return (
-    <section className="rounded-[24px] border border-[#dbe5f2] bg-white p-7 shadow-[0_18px_42px_rgba(15,23,42,0.08)]">
+    <section className="min-w-0 rounded-[24px] border border-[#dbe5f2] bg-white p-4 shadow-[0_18px_42px_rgba(15,23,42,0.08)] sm:p-7">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-black text-black">Recent Activity</h2>
         <span className="text-sm font-black text-electric-700">View all</span>

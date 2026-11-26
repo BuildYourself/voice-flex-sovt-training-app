@@ -103,7 +103,7 @@ export function OrderVerificationSuccess({
           </div>
         </div>
 
-        <h1 className="mt-5 text-5xl font-black tracking-tight text-navy-950 md:text-6xl">
+        <h1 className="mt-5 text-[38px] font-black leading-tight tracking-tight text-navy-950 sm:text-5xl md:text-6xl">
           Congratulations!
         </h1>
         <p className="mt-2 text-xl font-black text-blue-600 md:text-2xl">
@@ -154,7 +154,7 @@ export function OrderVerificationSuccess({
           <button
             type="button"
             onClick={onContinue}
-            className="inline-flex h-16 w-full items-center justify-center gap-6 rounded-2xl bg-blue-600 px-8 text-2xl font-black text-white shadow-xl shadow-blue-200 transition hover:bg-blue-700"
+            className="inline-flex h-16 w-full items-center justify-center gap-4 rounded-2xl bg-blue-600 px-6 text-xl font-black text-white shadow-xl shadow-blue-200 transition hover:bg-blue-700 sm:gap-6 sm:px-8 sm:text-2xl"
           >
             Continue to Training
             <ArrowRight className="h-8 w-8" />

@@ -38,14 +38,14 @@ export function TrainingSidebar({
   return (
     <>
       {mobileNav ? (
-        <nav className="flex items-center gap-2 overflow-x-auto border-b border-slate-200 bg-white px-4 py-3 lg:hidden" aria-label="Training">
+        <nav className="flex items-center gap-1 overflow-x-auto border-b border-slate-200 bg-white px-3 py-3 lg:hidden" aria-label="Training">
           {TRAINING_NAV_ITEMS.filter((item) => item.id !== "setup").map((item) => (
             <Link
               key={item.id}
               href={item.href(productType)}
               aria-current={item.id === activeItem ? "page" : undefined}
               className={cn(
-                "shrink-0 rounded-xl px-2.5 py-2 text-sm font-black text-slate-600",
+                "flex-1 shrink-0 whitespace-nowrap rounded-xl px-2 py-2 text-center text-[13px] font-black text-slate-600 min-[400px]:text-sm",
                 item.id === activeItem && "bg-electric-600 text-white"
               )}
             >

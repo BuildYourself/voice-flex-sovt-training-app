@@ -369,30 +369,6 @@ function MobileTrainingOnboarding({
           <p className="mt-3 text-[17px] leading-7 text-slate-600">{config.subtitle}</p>
         </section>
 
-        <section className="mt-5 grid grid-cols-2 gap-3">
-          <MobileProgressCard percent={percent} currentNumber={currentNumber} totalSteps={totalSteps} />
-          <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-card">
-            <h2 className="text-sm font-black text-navy-950">Local Progress</h2>
-            <div className="mt-4 flex gap-3">
-              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-blue-50 text-electric-700">
-                📅
-              </span>
-              <div className="min-w-0 text-sm leading-6 text-slate-700">
-                <p>Streak: {progress.streak} {progress.streak === 1 ? "day" : "days"}</p>
-                <p>Total minutes: {progress.totalMinutes}</p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={onReset}
-              className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-blue-200 bg-white text-sm font-black text-electric-700"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Reset progress
-            </button>
-          </div>
-        </section>
-
         <section className="mt-5 rounded-[28px] border border-slate-200 bg-white p-4 shadow-card">
           <h2 className="text-xl font-black text-navy-950">
             <span className="text-electric-700">Step {currentNumber} of {totalSteps}</span> - {currentStep.label}
@@ -410,7 +386,7 @@ function MobileTrainingOnboarding({
                 <img
                   src={currentStep.imageSrc}
                   alt={currentStep.visualTitle}
-                  className="h-full min-h-[230px] w-full object-cover"
+                  className="h-[230px] w-full bg-white object-contain"
                 />
               ) : (
                 <div className="flex min-h-[230px] flex-col items-center justify-center p-7 text-center">
@@ -454,16 +430,16 @@ function MobileTrainingOnboarding({
           </div>
         </section>
 
-        <section className="mt-5 grid grid-cols-3 gap-3">
+        <section className="mt-5 grid gap-3 sm:grid-cols-3">
           {infoCards.map(({ Icon, title, items }) => (
-            <div key={title} className="rounded-3xl border border-slate-200 bg-white p-3 shadow-card">
+            <div key={title} className="rounded-3xl border border-slate-200 bg-white p-4 shadow-card">
               <span className="grid h-10 w-10 place-items-center rounded-2xl bg-blue-50 text-electric-700">
                 <Icon className="h-5 w-5" />
               </span>
               <h3 className="mt-3 text-sm font-black leading-5 text-navy-950">{title}</h3>
               <div className="mt-3 space-y-2">
                 {items.slice(0, 3).map((item) => (
-                  <div key={item} className="flex gap-1.5 text-[12px] font-semibold leading-4 text-slate-600">
+                  <div key={item} className="flex gap-1.5 text-[13px] font-semibold leading-5 text-slate-600">
                     <Check className="h-3.5 w-3.5 shrink-0 text-electric-600" />
                     {item}
                   </div>
@@ -481,37 +457,6 @@ function MobileTrainingOnboarding({
             {currentStepIndex >= totalSteps - 1 ? "Routines" : "Continue"}
             <ArrowRight className="ml-3 h-5 w-5" />
           </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function MobileProgressCard({
-  percent,
-  currentNumber,
-  totalSteps,
-}: {
-  percent: number;
-  currentNumber: number;
-  totalSteps: number;
-}) {
-  return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-card">
-      <h2 className="text-sm font-black text-navy-950">Guide Progress</h2>
-      <div className="mt-4 flex items-center gap-3">
-        <div
-          className="grid h-[86px] w-[86px] shrink-0 place-items-center rounded-full"
-          style={{ background: `conic-gradient(#0f62fe ${percent * 3.6}deg, #dbeafe 0deg)` }}
-        >
-          <div className="grid h-[66px] w-[66px] place-items-center rounded-full bg-white text-2xl font-black text-navy-950">
-            {percent}%
-          </div>
-        </div>
-        <div className="text-sm">
-          <p className="text-lg font-black text-navy-950">{currentNumber} of {totalSteps}</p>
-          <p className="font-black text-navy-950">steps done</p>
-          <p className="mt-2 text-slate-600">Keep going!</p>
         </div>
       </div>
     </div>
@@ -556,9 +501,7 @@ function MobileSetupStepper({
             >
               {isComplete ? <Check className="h-5 w-5" /> : stepNumber}
             </button>
-            <p className={cn("mt-2 text-[12px] font-black leading-4", isActive ? "text-electric-700" : "text-navy-950")}>
-              {step.label}
-            </p>
+            <p className="sr-only">{step.label}</p>
           </div>
         );
       })}
