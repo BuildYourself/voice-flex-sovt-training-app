@@ -9,6 +9,7 @@ import {
   Flame,
   Lock,
   Medal,
+  MessageCircle,
   Mic,
   Music,
   ShieldCheck,
@@ -369,23 +370,13 @@ function ProgressRing({ milestone, size, children }: { milestone: ComputedMilest
 }
 
 function BalanceRow({ item }: { item: ReturnType<typeof computeTrainingBalance>[number] }) {
-  const color =
-    item.label === "Breath Control"
-      ? "from-cyan-400 to-electric-600"
-      : item.label === "Vocal Flexibility"
-        ? "from-blue-400 to-electric-700"
-        : item.label === "Pitch Stability"
-          ? "from-violet-400 to-purple-600"
-          : "from-orange-400 to-orange-600";
-  const iconClass =
-    item.label === "Breath Control"
-      ? "bg-cyan-50 text-cyan-700"
-      : item.label === "Vocal Flexibility"
-        ? "bg-blue-50 text-electric-700"
-        : item.label === "Pitch Stability"
-          ? "bg-violet-50 text-violet-700"
-          : "bg-orange-50 text-orange-600";
-  const Icon = item.label === "Breath Control" ? Waves : item.label === "Vocal Flexibility" ? Mic : item.label === "Pitch Stability" ? Music : CalendarCheck;
+  const style: Record<string, { color: string; iconClass: string; Icon: typeof Waves }> = {
+    "Breath Control": { color: "from-cyan-400 to-electric-600", iconClass: "bg-cyan-50 text-cyan-700", Icon: Waves },
+    "Vocal Flexibility": { color: "from-blue-400 to-electric-700", iconClass: "bg-blue-50 text-electric-700", Icon: Mic },
+    "Pitch Stability": { color: "from-violet-400 to-purple-600", iconClass: "bg-violet-50 text-violet-700", Icon: Music },
+    "Speaking Voice": { color: "from-emerald-400 to-emerald-600", iconClass: "bg-emerald-50 text-emerald-700", Icon: MessageCircle }
+  };
+  const { color, iconClass, Icon } = style[item.label] ?? { color: "from-orange-400 to-orange-600", iconClass: "bg-orange-50 text-orange-600", Icon: CalendarCheck };
   return (
     <div className="grid gap-3 rounded-2xl border border-slate-100 bg-white/80 p-3 shadow-[0_10px_24px_rgba(15,23,42,0.035)] md:grid-cols-[260px_1fr_185px] md:items-center">
       <div className="flex items-center gap-3">

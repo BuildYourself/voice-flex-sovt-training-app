@@ -5,26 +5,33 @@ import { ArrowRight, Check, Menu, RotateCcw, Waves, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { onboardingCalloutIcon, onboardingVisualIcons, trainingOnboardingConfigs } from "@/lib/training-onboarding";
+import type { VoiceFlexKit } from "@/lib/kits";
+import {
+  getTrainingOnboardingConfig,
+  onboardingCalloutIcon,
+  onboardingVisualIcons,
+  type TrainingOnboardingConfig
+} from "@/lib/training-onboarding";
 import type { LocalTrainingProgress } from "@/lib/training-progress";
 import type { VoiceFlexProduct } from "@/lib/training-product";
 
-type TrainingOnboardingConfig = (typeof trainingOnboardingConfigs)[VoiceFlexProduct];
 type TrainingOnboardingStep = TrainingOnboardingConfig["steps"][number];
 type TrainingOnboardingInfoCard = TrainingOnboardingConfig["infoCards"][number];
 
 export function TrainingOnboarding({
   productType,
+  kit,
   progress,
   onComplete,
   onReset
 }: {
   productType: VoiceFlexProduct;
+  kit?: VoiceFlexKit | null;
   progress: LocalTrainingProgress;
   onComplete: () => void;
   onReset: () => void;
 }) {
-  const config = trainingOnboardingConfigs[productType];
+  const config = useMemo(() => getTrainingOnboardingConfig(productType, kit ?? undefined), [productType, kit]);
   const trainingBase = `/train/${productType}`;
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const currentStep = config.steps[currentStepIndex];
@@ -77,14 +84,14 @@ export function TrainingOnboarding({
         </div>
         <nav className="mt-10 space-y-2">
           <a href={trainingBase} className="block rounded-2xl bg-electric-600 px-4 py-4 font-black">
-            🚀 Setup
+            🚀 Guide
           </a>
           <button
             type="button"
             onClick={onComplete}
             className="block w-full rounded-2xl px-4 py-4 text-left font-bold text-white/75 transition hover:bg-white/10"
           >
-            🎙️ Sessions
+            🎙️ Routines
           </button>
           <a
             href={`${trainingBase}/progress`}
@@ -207,11 +214,11 @@ export function TrainingOnboarding({
                           </div>
                           <div className="mt-6 grid gap-3 sm:grid-cols-2">
                             <Button className="h-12 rounded-xl font-black" onClick={continueSetup}>
-                              {currentStepIndex >= totalSteps - 1 ? "Start Day 1" : "Continue Setup"}
+                              {currentStepIndex >= totalSteps - 1 ? "Choose a routine" : "Continue"}
                               <ArrowRight className="ml-2 h-4 w-4" />
                             </Button>
                             <Button variant="outline" className="h-12 rounded-xl border-blue-200 font-black text-electric-700" onClick={onComplete}>
-                              Skip to Day 1
+                              Skip to routines
                               <ArrowRight className="ml-2 h-4 w-4" />
                             </Button>
                           </div>
@@ -254,7 +261,7 @@ export function TrainingOnboarding({
                       {percent}%
                     </div>
                     <div>
-                      <h3 className="text-lg font-black text-electric-700">Setup Progress</h3>
+                      <h3 className="text-lg font-black text-electric-700">Guide Progress</h3>
                       <p className="mt-2 font-black text-navy-950">
                         {currentNumber} of {totalSteps} steps done
                       </p>
@@ -266,11 +273,11 @@ export function TrainingOnboarding({
               <Card>
                 <CardContent className="p-6">
                   <p className="text-sm font-bold uppercase tracking-[0.14em] text-slate-500">Local progress</p>
-                  <p className="mt-3 text-sm leading-6 text-slate-600">Current day: Day {progress.currentDay}</p>
+                  <p className="mt-3 text-sm leading-6 text-slate-600">Streak: {progress.streak} {progress.streak === 1 ? "day" : "days"}</p>
                   <p className="text-sm leading-6 text-slate-600">Total minutes: {progress.totalMinutes}</p>
                   <Button variant="outline" className="mt-5 h-11 w-full rounded-xl font-black" onClick={onReset}>
                     <RotateCcw className="mr-2 h-4 w-4" />
-                    Reset setup
+                    Reset progress
                   </Button>
                 </CardContent>
               </Card>
@@ -371,7 +378,7 @@ function MobileTrainingOnboarding({
                 📅
               </span>
               <div className="min-w-0 text-sm leading-6 text-slate-700">
-                <p>Current day: Day {progress.currentDay}</p>
+                <p>Streak: {progress.streak} {progress.streak === 1 ? "day" : "days"}</p>
                 <p>Total minutes: {progress.totalMinutes}</p>
               </div>
             </div>
@@ -381,7 +388,7 @@ function MobileTrainingOnboarding({
               className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-blue-200 bg-white text-sm font-black text-electric-700"
             >
               <RotateCcw className="h-4 w-4" />
-              Reset setup
+              Reset progress
             </button>
           </div>
         </section>
@@ -420,7 +427,7 @@ function MobileTrainingOnboarding({
               <h3 className="text-[26px] font-black leading-tight text-navy-950">{currentStep.title}</h3>
               <p className="mt-2 text-[15px] leading-6 text-slate-600">{currentStep.body}</p>
               <div className="mt-4 space-y-2.5">
-                {currentStep.bullets.slice(0, 3).map((bullet) => (
+                {currentStep.bullets.map((bullet) => (
                   <div key={bullet} className="flex gap-2.5 text-[15px] font-semibold text-navy-950">
                     <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-electric-600 text-white">
                       <Check className="h-4 w-4" />
@@ -435,11 +442,11 @@ function MobileTrainingOnboarding({
               </div>
               <div className="mt-4 grid grid-cols-2 gap-3">
                 <Button className="h-12 rounded-2xl text-sm font-black" onClick={onContinue}>
-                  {currentStepIndex >= totalSteps - 1 ? "Start Day 1" : "Continue Setup"}
+                  {currentStepIndex >= totalSteps - 1 ? "Choose a routine" : "Continue"}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
                 <Button variant="outline" className="h-12 rounded-2xl border-blue-200 text-sm font-black text-electric-700" onClick={onComplete}>
-                  Skip to Day 1
+                  Skip to routines
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
@@ -471,7 +478,7 @@ function MobileTrainingOnboarding({
         <div className="mx-auto flex max-w-md items-center justify-between gap-4">
           <div className="text-lg font-black text-navy-950">Step {currentNumber}/{totalSteps}</div>
           <Button className="h-14 min-w-[164px] rounded-2xl text-lg font-black" onClick={onContinue}>
-            Continue
+            {currentStepIndex >= totalSteps - 1 ? "Routines" : "Continue"}
             <ArrowRight className="ml-3 h-5 w-5" />
           </Button>
         </div>
@@ -491,7 +498,7 @@ function MobileProgressCard({
 }) {
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-card">
-      <h2 className="text-sm font-black text-navy-950">Setup Progress</h2>
+      <h2 className="text-sm font-black text-navy-950">Guide Progress</h2>
       <div className="mt-4 flex items-center gap-3">
         <div
           className="grid h-[86px] w-[86px] shrink-0 place-items-center rounded-full"
@@ -592,7 +599,7 @@ function MobileSetupMenu({
         </div>
         <nav className="mt-5 space-y-2 text-base font-black">
           <a href={trainingBase} className="block rounded-2xl bg-electric-600 px-4 py-3 text-white" onClick={onClose}>
-            🚀 Setup
+            🚀 Guide
           </a>
           <button
             type="button"
@@ -602,7 +609,7 @@ function MobileSetupMenu({
               onComplete();
             }}
           >
-            🎙️ Sessions
+            🎙️ Routines
           </button>
           <a href={`${trainingBase}/progress`} className="block rounded-2xl px-4 py-3 text-slate-700" onClick={onClose}>
             📊 Progress

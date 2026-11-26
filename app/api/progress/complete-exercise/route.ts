@@ -8,6 +8,8 @@ import {
   getServerEnvironment,
   resolveVerifiedOrder,
 } from "@/lib/order-progress-server";
+import { getExercise } from "@/lib/exercises";
+import { isRoutineSlot } from "@/lib/routines";
 import { isVoiceFlexProduct } from "@/lib/training-product";
 
 export const runtime = "nodejs";
@@ -54,7 +56,19 @@ export async function POST(request: Request) {
     const totalExercises = toPositiveNumber(body.totalExercises);
     const practiceDate = isDateString(body.practiceDate) ? body.practiceDate : null;
 
-    if (!orderNumber || !productType || !programDay || !exerciseId || !exerciseTitle || !durationSeconds || !totalExercises || !practiceDate) {
+    // programDay carries the routine slot (1 = Daily Session).
+    if (
+      !orderNumber ||
+      !productType ||
+      !programDay ||
+      !isRoutineSlot(programDay) ||
+      !exerciseId ||
+      !getExercise(exerciseId) ||
+      !exerciseTitle ||
+      !durationSeconds ||
+      !totalExercises ||
+      !practiceDate
+    ) {
       return NextResponse.json(
         {
           ok: false,

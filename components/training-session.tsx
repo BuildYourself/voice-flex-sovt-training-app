@@ -28,15 +28,19 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { ExerciseGuidePanel } from "@/components/exercise-guide-panel";
 import { TrainingSidebar } from "@/components/training-sidebar";
 import { useTrainingProgress } from "@/hooks/use-training-progress";
 import { getMilestoneOrderAccessId, recordLocalExerciseCompletion, recordLocalFullSessionCompletion } from "@/lib/local-milestones";
 import { cn } from "@/lib/utils";
+import { getVoiceRange, GuideTonePlayer, setVoiceRange as storeVoiceRange, type VoiceRange } from "@/lib/guide-tones";
+import { getDefaultKit } from "@/lib/kits";
+import type { RoutineId } from "@/lib/routines";
 import type { VoiceFlexProduct } from "@/lib/training-product";
+import { getRoutineDayKey } from "@/lib/training-progress";
 import {
   formatSessionDuration,
   formatSessionTimer,
-  getSessionTotalSeconds,
   getTrainingSessionConfig,
   type TrainingSessionExercise
 } from "@/lib/training-sessions";
@@ -55,20 +59,26 @@ function createSessionRunId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-export function TrainingSession({ productType }: { productType: VoiceFlexProduct }) {
+export function TrainingSession({ productType, routineId = "daily" }: { productType: VoiceFlexProduct; routineId?: RoutineId }) {
   const router = useRouter();
   const {
     progress,
+    kit,
     loading,
     markExerciseCompleted,
     addTrainingMinutes,
-    updateProgress,
     updateStreakForToday,
     refreshProgressStats
   } = useTrainingProgress(productType);
-  const session = useMemo(() => getTrainingSessionConfig(productType), [productType]);
-  const day = progress?.currentDay ?? session.day;
-  const dayKey = `day-${day}`;
+  const session = useMemo(
+    () => getTrainingSessionConfig(productType, kit ?? getDefaultKit(productType), routineId),
+    [productType, kit, routineId]
+  );
+  // The routine slot is saved as program_day. Completion is kept per date and
+  // routine, so tomorrow (or another routine) starts fresh.
+  const slot = session.day;
+  const [practiceDate] = useState(() => getLocalDateString());
+  const dayKey = useMemo(() => getRoutineDayKey(slot, new Date(`${practiceDate}T12:00:00`)), [slot, practiceDate]);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [completedIds, setCompletedIds] = useState<string[]>([]);
   const [remainingSeconds, setRemainingSeconds] = useState(session.exercises[0]?.durationSeconds ?? 0);
@@ -81,9 +91,14 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
   const intervalRef = useRef<number | null>(null);
   const demoAudioRef = useRef<HTMLAudioElement | null>(null);
   const accompanimentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const guidePlayerRef = useRef<GuideTonePlayer | null>(null);
+  const [voiceRange, setVoiceRangeState] = useState<VoiceRange | null>(null);
 
   const currentStep = session.exercises[currentStepIndex] ?? session.exercises[0];
-  const totalSeconds = useMemo(() => getSessionTotalSeconds(productType), [productType]);
+  const totalSeconds = useMemo(
+    () => session.exercises.reduce((total, exercise) => total + exercise.durationSeconds, 0),
+    [session.exercises]
+  );
   const completedSeconds = useMemo(
     () =>
       session.exercises.reduce((total, exercise) => {
@@ -122,11 +137,35 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
   }, [currentStepIndex, currentStep, completedIds.length, session.exercises.length]);
 
   useEffect(() => {
+    setVoiceRangeState(getVoiceRange());
     return () => {
       clearTimer();
       stopAllAudio();
+      guidePlayerRef.current?.dispose();
+      guidePlayerRef.current = null;
     };
   }, []);
+
+  function getGuidePlayer() {
+    if (!guidePlayerRef.current) guidePlayerRef.current = new GuideTonePlayer();
+    return guidePlayerRef.current;
+  }
+
+  function changeVoiceRange(range: VoiceRange) {
+    storeVoiceRange(range);
+    setVoiceRangeState(range);
+  }
+
+  function playGuideNote(step: TrainingSessionExercise) {
+    if (!step.guide) return;
+    // Long Hum Hold plays its reference note even while the timer runs.
+    if (mode === "practice" && step.guide !== "hold-note") return;
+    getGuidePlayer().start("hold-note", voiceRange ?? "lower", false);
+  }
+
+  function hasLoopingGuide(step: TrainingSessionExercise) {
+    return Boolean(step.guide && step.guide !== "hold-note" && !step.accompanimentAudioSrc);
+  }
 
   function clearTimer() {
     if (intervalRef.current) {
@@ -153,6 +192,7 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
   }
 
   function stopAllAudio() {
+    guidePlayerRef.current?.stop();
     const demoAudio = demoAudioRef.current;
     if (demoAudio) {
       demoAudio.pause();
@@ -271,12 +311,12 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
         body: JSON.stringify({
           orderNumber,
           productType,
-          programDay: day,
+          programDay: slot,
           exerciseId: step.id,
           exerciseTitle: step.title,
           durationSeconds: step.durationSeconds,
           totalExercises: session.exercises.length,
-          practiceDate: getLocalDateString()
+          practiceDate
         })
       });
 
@@ -317,15 +357,12 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
         exerciseId: step.id,
         exerciseTitle: step.title,
         durationSeconds: step.durationSeconds,
-        programDay: day,
+        programDay: slot,
         completedAt: new Date().toISOString(),
         sessionRunId: sessionRunIdRef.current
       });
 
-      if (isSessionComplete && progress) {
-        updateProgress({
-          completedDays: Array.from(new Set([...progress.completedDays, day]))
-        });
+      if (isSessionComplete) {
         recordLocalFullSessionCompletion({
           productType,
           orderAccessId: getMilestoneOrderAccessId(),
@@ -367,6 +404,7 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
   function pauseTimer() {
     clearTimer();
     pauseAudio("accompaniment");
+    guidePlayerRef.current?.stop();
     setMode("paused");
   }
 
@@ -383,6 +421,8 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
       } else {
         void playAudio("accompaniment", currentStep.accompanimentAudioSrc);
       }
+    } else if (hasLoopingGuide(currentStep) && currentStep.guide) {
+      getGuidePlayer().start(currentStep.guide, voiceRange ?? "lower");
     }
     startTimer();
   }
@@ -421,12 +461,26 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
     );
   }
 
+  const guidePanel = currentStep.guide ? (
+    <ExerciseGuidePanel
+      key={currentStep.id}
+      productType={productType}
+      pattern={currentStep.guide}
+      range={voiceRange}
+      onRangeChange={changeVoiceRange}
+      onPlayNote={() => playGuideNote(currentStep)}
+      practicing={mode === "practice"}
+    />
+  ) : null;
+
   return (
     <div className="min-h-screen bg-[#f6f9fd] text-navy-950">
-      <TrainingSidebar productType={productType} activeItem="sessions" />
+      <TrainingSidebar productType={productType} activeItem="sessions" mobileNav={false} />
 
       <main className="px-4 py-6 pb-28 sm:px-6 md:pb-6 lg:ml-[272px] lg:px-8">
         <MobileTrainingSession
+          productType={productType}
+          guidePanel={guidePanel}
           sessionTitle={session.title}
           currentStep={currentStep}
           currentStepIndex={currentStepIndex}
@@ -450,8 +504,11 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
         <div className="mx-auto hidden max-w-[1680px] md:block">
           <header className="mb-8 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             <div>
-              <h1 className="text-[32px] font-black leading-tight tracking-normal text-black md:text-[38px]">{session.title}</h1>
-              <p className="mt-2 text-base leading-7 text-slate-600 md:text-lg">{session.subtitle}</p>
+              <Link href={`/train/${productType}`} className="text-sm font-black text-electric-700 hover:underline">
+                &larr; All routines
+              </Link>
+              <h1 className="mt-2 text-[32px] font-black leading-tight tracking-normal text-black md:text-[38px]">{session.title}</h1>
+              <p className="mt-2 max-w-3xl text-base leading-7 text-slate-600 md:text-lg">{session.subtitle}</p>
             </div>
             <div className="flex flex-col items-start gap-3 xl:items-end">
               <div className="flex items-center gap-5 text-sm text-slate-700">
@@ -475,13 +532,13 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
             <section className="space-y-5">
               <Card className="overflow-hidden">
                 <CardContent className="p-6 md:p-8">
-                  <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_230px]">
+                  <div className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_230px]">
                     <div>
                       <div className="mb-7 flex items-center gap-4">
                         <Waves className="h-8 w-8 text-electric-700" />
                         <span className="font-bold text-slate-600">Current Exercise</span>
                       </div>
-                      <h2 className="text-[34px] font-black leading-tight tracking-normal text-black md:text-[48px]">{currentStep.title}</h2>
+                      <h2 className="text-[34px] font-black leading-tight tracking-normal text-black md:text-[42px]">{currentStep.title}</h2>
                       <p className="mt-4 flex items-center gap-2 text-base text-slate-700">
                         <span className="h-3 w-3 rounded-full bg-amber-400" />
                         Tool: {currentStep.tool ?? "Voice Flex"}
@@ -498,6 +555,7 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
                   </div>
 
                   <WatchDemoCard currentStep={currentStep} playingAudio={playingAudio} demoDisabled={mode === "practice"} onToggleDemo={toggleDemoAudio} />
+                  {guidePanel}
 
                   <div className="mt-4 rounded-3xl border border-blue-200 bg-blue-50/40 p-5">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -506,9 +564,15 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
                           {currentStep.accompanimentAudioSrc ? <KeyboardMusic className="h-5 w-5" /> : <Target className="h-5 w-5" />}
                         </span>
                         <div>
-                          <h3 className="text-[28px] font-black leading-tight text-black">2. {currentStep.accompanimentAudioSrc ? "Practice with Piano" : "Start Exercise"}</h3>
+                          <h3 className="text-[28px] font-black leading-tight text-black">
+                            2. {currentStep.accompanimentAudioSrc ? "Practice with Piano" : hasLoopingGuide(currentStep) ? "Practice with Guide Tones" : "Start Exercise"}
+                          </h3>
                           <p className="mt-1 text-sm text-slate-600">
-                            {currentStep.accompanimentAudioSrc ? "Start the accompaniment and sing along for the full step." : "Start the timer and follow the exercise instructions."}
+                            {currentStep.accompanimentAudioSrc
+                              ? "Start the accompaniment and sing along for the full step."
+                              : hasLoopingGuide(currentStep)
+                                ? "Start the timer. The guide tones play in your voice range."
+                                : "Start the timer and follow the exercise instructions."}
                           </p>
                         </div>
                       </div>
@@ -572,8 +636,8 @@ export function TrainingSession({ productType }: { productType: VoiceFlexProduct
                       <p className="mt-1 text-sm text-slate-600">Steps Completed</p>
                     </div>
                     <div>
-                      <p className="text-3xl font-black text-black">0</p>
-                      <p className="mt-1 text-sm text-slate-600">Achievements</p>
+                      <p className="text-3xl font-black text-black">{Math.max(0, session.exercises.length - completedIds.length)}</p>
+                      <p className="mt-1 text-sm text-slate-600">Steps Left</p>
                     </div>
                   </div>
                   <div className="mt-7 border-t border-slate-200 pt-5 text-sm text-slate-600">
@@ -705,7 +769,7 @@ function SessionCompleteModal({
             <div>
               <h3 className="text-lg font-black text-white">Consistency is Power</h3>
               <p className="mt-1 text-sm leading-6 text-slate-300 md:text-base">Every minute you train, your voice gets stronger.</p>
-              <p className="text-sm leading-6 text-slate-300 md:text-base">See you in the next session!</p>
+              <p className="text-sm leading-6 text-slate-300 md:text-base">Short and often works best. See you next time!</p>
             </div>
           </div>
 
@@ -724,7 +788,7 @@ function SessionCompleteModal({
               className="inline-flex h-16 items-center justify-center gap-3 rounded-xl bg-electric-600 px-6 text-lg font-black text-white shadow-[0_18px_35px_rgba(23,105,246,0.35)] transition hover:bg-electric-700 focus:outline-none focus:ring-2 focus:ring-cyan-300"
             >
               <ArrowRight className="h-6 w-6" />
-              Back to Dashboard
+              Choose another routine
             </button>
           </div>
         </div>
@@ -744,6 +808,8 @@ function SessionCompleteStat({ icon, label, value }: { icon: ReactNode; label: s
 }
 
 function MobileTrainingSession({
+  productType,
+  guidePanel,
   sessionTitle,
   currentStep,
   currentStepIndex,
@@ -763,6 +829,8 @@ function MobileTrainingSession({
   onPrevious,
   onSkip
 }: {
+  productType: VoiceFlexProduct;
+  guidePanel: ReactNode;
   sessionTitle: string;
   currentStep: TrainingSessionExercise;
   currentStepIndex: number;
@@ -799,7 +867,9 @@ function MobileTrainingSession({
       <div className="sticky top-0 z-30 -mx-4 mb-4 border-b border-slate-200/70 bg-[#f6f9fd]/95 px-4 pb-3 pt-2 backdrop-blur">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-electric-700">{sessionTitle}</p>
+            <Link href={`/train/${productType}`} className="text-xs font-black uppercase tracking-[0.18em] text-electric-700">
+              &larr; {sessionTitle}
+            </Link>
             <h1 className="mt-1 truncate text-2xl font-black leading-tight text-black">{currentStep.title}</h1>
             <p className="text-sm font-bold text-electric-700">
               Step {currentStepIndex + 1}/{steps.length}
@@ -868,6 +938,8 @@ function MobileTrainingSession({
               <SkipForward className="ml-2 h-4 w-4" />
             </Button>
           </div>
+
+          {guidePanel}
 
           <div className="mt-4 inline-flex rounded-full bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700">
             <span className="mr-2 mt-1 h-2 w-2 rounded-full bg-emerald-500" />
@@ -1246,7 +1318,9 @@ function WatchDemoCard({
         </div>
       ) : (
         <div className="mt-5 rounded-2xl border border-blue-100 bg-white p-5 text-sm font-semibold text-slate-600">
-          Visual demo coming soon. Start the exercise when you are ready and keep everything relaxed.
+          {currentStep.guide
+            ? "Use the guide tones below. Start the exercise when you are ready and keep everything relaxed."
+            : "Visual demo coming soon. Start the exercise when you are ready and keep everything relaxed."}
         </div>
       )}
     </div>

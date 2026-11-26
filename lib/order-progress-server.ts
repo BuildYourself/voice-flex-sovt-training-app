@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
+import { getKitForOrder } from "@/lib/kits";
 import type { VoiceFlexProduct } from "@/lib/training-product";
 
 export type ProductMatch = {
@@ -19,6 +20,7 @@ export type AmazonOrderAccessRow = {
   id: string;
   amazon_order_number: string;
   asin: string | null;
+  source_asin: string | null;
   shipped: boolean | null;
 };
 
@@ -245,7 +247,7 @@ export async function resolveVerifiedOrder(
 ) {
   const { data, error } = await supabase
     .from("amazon_order_access")
-    .select("id, amazon_order_number, asin, shipped")
+    .select("id, amazon_order_number, asin, source_asin, shipped")
     .eq("amazon_order_number", orderNumber)
     .maybeSingle<AmazonOrderAccessRow>();
 
@@ -285,6 +287,8 @@ export async function resolveVerifiedOrder(
     ok: true,
     order: data,
     asin: normalizedAsin,
+    sourceAsin: normalizeAsin(data.source_asin) || normalizedAsin,
+    kit: getKitForOrder(product.productType, data.source_asin),
     product,
   } as const;
 }

@@ -1,12 +1,24 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { type VoiceFlexProduct } from "@/lib/training-product";
+import type { RoutineId } from "@/lib/routines";
 import { useTrainingProgress } from "@/hooks/use-training-progress";
 import { TrainingOnboarding } from "@/components/training-onboarding";
+import { TrainingRoutinePicker } from "@/components/training-routine-picker";
 import { TrainingSession } from "@/components/training-session";
 
-export function TrainingEntry({ product }: { product: VoiceFlexProduct }) {
-  const { progress, loading, markOnboardingCompleted, resetProgress } = useTrainingProgress(product);
+export function TrainingEntry({
+  product,
+  routineId,
+  showSetup = false
+}: {
+  product: VoiceFlexProduct;
+  routineId?: RoutineId;
+  showSetup?: boolean;
+}) {
+  const router = useRouter();
+  const { progress, kit, loading, markOnboardingCompleted, resetProgress } = useTrainingProgress(product);
 
   if (loading || !progress) {
     return (
@@ -16,9 +28,24 @@ export function TrainingEntry({ product }: { product: VoiceFlexProduct }) {
     );
   }
 
-  if (!progress.onboardingCompleted) {
-    return <TrainingOnboarding productType={product} progress={progress} onComplete={() => markOnboardingCompleted()} onReset={() => resetProgress()} />;
+  if (!progress.onboardingCompleted || showSetup) {
+    return (
+      <TrainingOnboarding
+        productType={product}
+        kit={kit}
+        progress={progress}
+        onComplete={() => {
+          markOnboardingCompleted();
+          router.push(`/train/${product}`);
+        }}
+        onReset={() => resetProgress()}
+      />
+    );
   }
 
-  return <TrainingSession productType={product} />;
+  if (routineId) {
+    return <TrainingSession key={routineId} productType={product} routineId={routineId} />;
+  }
+
+  return <TrainingRoutinePicker productType={product} />;
 }

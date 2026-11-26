@@ -62,6 +62,8 @@ export async function POST(request: Request) {
         orderAccessId: result.order.id,
         orderNumber: result.order.amazon_order_number,
         asin: result.asin,
+        sourceAsin: result.sourceAsin,
+        kit: result.kit,
         productType: result.product.productType,
         productName: result.product.productName,
         trainingRoute: result.product.trainingRoute,

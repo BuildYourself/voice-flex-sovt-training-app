@@ -76,6 +76,7 @@ type ProgressPayload = {
     secondsPracticed: number;
     displayPracticed: string;
     currentExerciseTitle: string | null;
+    routines?: { routineId: string; title: string; completedCount: number; fullSessionCompleted: boolean; secondsPracticed: number }[];
   };
   session: {
     totalSeconds: number;
@@ -241,7 +242,7 @@ function TodayProgressCard({ data, productType }: { data: ProgressPayload; produ
             <div>
               <h2 className="text-2xl font-black tracking-tight text-black">Today&apos;s Progress</h2>
               <p className="mt-2 text-sm text-slate-600">
-                {productLabel(productType)} <span className="px-2">•</span> Day {data.currentDay}
+                {productLabel(productType)} <span className="px-2">•</span> Daily Session
               </p>
             </div>
             <div className="flex flex-wrap items-end gap-14">
@@ -355,8 +356,17 @@ function PremiumTodayProgressCard({ data, productType }: { data: ProgressPayload
             <div>
               <h2 className="text-3xl font-black tracking-tight text-[#071327]">Today&apos;s Progress</h2>
               <p className="mt-3 text-sm font-medium text-slate-600">
-                {productLabel(productType)} <span className="px-2">&bull;</span> Day {data.currentDay}
+                {productLabel(productType)} <span className="px-2">&bull;</span> Daily Session
               </p>
+              {data.today.routines?.some((routine) => routine.routineId !== "daily") ? (
+                <p className="mt-2 text-sm font-medium text-slate-600">
+                  Also today:{" "}
+                  {data.today.routines
+                    .filter((routine) => routine.routineId !== "daily")
+                    .map((routine) => `${routine.title}${routine.fullSessionCompleted ? " (done)" : ""}`)
+                    .join(", ")}
+                </p>
+              ) : null}
             </div>
             <div className="flex flex-wrap items-center gap-8 xl:pr-52">
               <p className="text-slate-600">
@@ -792,7 +802,7 @@ export function TrainingProgressDashboard({ productType }: { productType: VoiceF
         const response = await fetch("/api/progress", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orderNumber, productType }),
+          body: JSON.stringify({ orderNumber, productType, today: localDateString() }),
         });
         const payload = (await response.json()) as unknown;
 
@@ -857,9 +867,9 @@ export function TrainingProgressDashboard({ productType }: { productType: VoiceF
 
             <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
               <PremiumStatCard Icon={Flame} label="Practice Streak" value={data.stats.practiceStreak} suffix={data.stats.practiceStreak === 1 ? "day" : "days"} hint="Keep it up!" tone="orange" />
-              <PremiumStatCard Icon={Timer} label="Total Minutes" value={data.stats.totalMinutes} suffix="min" hint="This week" />
-              <PremiumStatCard Icon={CheckCircle2} label="Exercises Completed" value={data.stats.exercisesCompleted} hint="This week" tone="green" />
-              <PremiumStatCard Icon={Trophy} label="Full Sessions" value={data.stats.fullSessions} hint="This week" tone="purple" />
+              <PremiumStatCard Icon={Timer} label="Total Minutes" value={data.stats.totalMinutes} suffix="min" hint="All time" />
+              <PremiumStatCard Icon={CheckCircle2} label="Exercises Completed" value={data.stats.exercisesCompleted} hint="All time" tone="green" />
+              <PremiumStatCard Icon={Trophy} label="Routines Completed" value={data.stats.fullSessions} hint="All time" tone="purple" />
             </section>
 
             <section className="grid gap-6 xl:grid-cols-[1.05fr_1fr_1.18fr]">

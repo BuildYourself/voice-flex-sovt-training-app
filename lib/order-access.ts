@@ -1,3 +1,4 @@
+import { isVoiceFlexKit, type VoiceFlexKit } from "@/lib/kits";
 import { isVoiceFlexProduct, type VoiceFlexProduct } from "@/lib/training-product";
 
 export type VerifiedOrderProduct = {
@@ -8,6 +9,8 @@ export type VerifiedOrderProduct = {
   productName: string;
   orderNumber?: string;
   trainingRoute?: `/train/${VoiceFlexProduct}`;
+  sourceAsin?: string;
+  kit?: VoiceFlexKit;
 };
 
 export type VerifyOrderResult =
@@ -31,6 +34,8 @@ type VerifyOrderApiResponse =
       productType: VoiceFlexProduct;
       productName: string;
       trainingRoute: `/train/${VoiceFlexProduct}`;
+      sourceAsin?: string;
+      kit?: string;
     }
   | {
       ok: false;
@@ -118,6 +123,8 @@ export async function verifyOrderNumber(
         productName: payload.productName,
         orderNumber: payload.orderNumber,
         trainingRoute: payload.trainingRoute,
+        sourceAsin: typeof payload.sourceAsin === "string" ? payload.sourceAsin : undefined,
+        kit: isVoiceFlexKit(payload.kit) ? payload.kit : undefined,
       },
     };
   } catch (error) {

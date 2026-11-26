@@ -20,6 +20,7 @@ import {
   type VerifiedOrderProduct,
   verifyOrderNumber,
 } from "@/lib/order-access";
+import { getDefaultKit, setStoredKit } from "@/lib/kits";
 import { setActiveProduct } from "@/lib/training-product";
 import { trainingProgressStore } from "@/lib/training-progress";
 
@@ -149,6 +150,7 @@ export function OrderAccessPage() {
     const { product } = result;
 
     setActiveProduct(product.productType);
+    setStoredKit(product.productType, product.kit ?? getDefaultKit(product.productType), "order");
     window.localStorage.setItem(VERIFIED_ORDER_NUMBER_KEY, product.orderNumber ?? "");
     window.localStorage.setItem(ORDER_ACCESS_ID_KEY, product.orderAccessId);
     trainingProgressStore.getOrCreateProgress(product.productType);

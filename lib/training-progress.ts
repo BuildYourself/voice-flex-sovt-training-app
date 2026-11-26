@@ -172,13 +172,30 @@ export function resetAllTrainingProgress() {
   window.localStorage.removeItem(TRAINING_PROGRESS_KEYS.core);
 }
 
+/**
+ * Completed exercises are stored per date and routine slot, e.g.
+ * "2026-11-26-1" for today's Daily Session, so every day starts fresh.
+ */
+export function getRoutineDayKey(slot: number, date = new Date()) {
+  return `${getLocalDateString(date)}-${slot}`;
+}
+
+const MAX_STORED_DAY_KEYS = 120;
+
 export function markExerciseCompleted(productType: VoiceFlexProduct, dayKey: string, exerciseId: string): LocalTrainingProgress {
   const current = getOrCreateProgress(productType);
   const existingIds = current.completedExercises[dayKey] ?? [];
-  const completedExercises = {
+  const merged = {
     ...current.completedExercises,
     [dayKey]: Array.from(new Set([...existingIds, exerciseId]))
   };
+  // Keep the newest date keys only, and drop the old "day-N" keys.
+  const completedExercises = Object.fromEntries(
+    Object.entries(merged)
+      .filter(([key]) => /^\d{4}-\d{2}-\d{2}-\d+$/.test(key))
+      .sort(([a], [b]) => b.localeCompare(a))
+      .slice(0, MAX_STORED_DAY_KEYS)
+  );
 
   return saveProgress(productType, {
     ...current,

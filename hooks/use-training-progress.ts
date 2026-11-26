@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { getStoredKit, isVoiceFlexKit, setStoredKit, type VoiceFlexKit } from "@/lib/kits";
 import { getActiveProduct, setActiveProduct, type VoiceFlexProduct } from "@/lib/training-product";
 import {
   trainingProgressStore,
@@ -9,10 +10,15 @@ import {
 
 const VERIFIED_ORDER_NUMBER_KEY = "voiceflex_verified_order_number";
 
+function localDateString(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
 type ProgressApiPayload = {
   ok?: boolean;
   message?: string;
   currentDay?: number;
+  kit?: string;
   stats?: {
     practiceStreak?: number;
     totalMinutes?: number;
@@ -35,6 +41,7 @@ export function useTrainingProgress(initialProduct?: VoiceFlexProduct) {
   const [remoteStats, setRemoteStats] = useState<RemoteProgressStats | null>(null);
   const [progressStatsError, setProgressStatsError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const [kit, setKitState] = useState<VoiceFlexKit | null>(null);
 
   useEffect(() => {
     const product = initialProduct ?? getActiveProduct();
@@ -46,6 +53,7 @@ export function useTrainingProgress(initialProduct?: VoiceFlexProduct) {
     setActiveProduct(product);
     setActiveProductState(product);
     setProgress(trainingProgressStore.getOrCreateProgress(product));
+    setKitState(getStoredKit(product));
     setHydrated(true);
   }, [initialProduct]);
 
@@ -125,7 +133,8 @@ export function useTrainingProgress(initialProduct?: VoiceFlexProduct) {
         },
         body: JSON.stringify({
           orderNumber,
-          productType: activeProduct
+          productType: activeProduct,
+          today: localDateString()
         })
       });
       const payload = (await response.json().catch(() => null)) as ProgressApiPayload | null;
@@ -143,6 +152,12 @@ export function useTrainingProgress(initialProduct?: VoiceFlexProduct) {
         currentDay: Number(payload.currentDay ?? 1)
       };
 
+      if (isVoiceFlexKit(payload.kit)) {
+        // The order decides the kit unless the user picked one by hand.
+        setStoredKit(activeProduct, payload.kit, "order");
+        setKitState(getStoredKit(activeProduct));
+      }
+
       setRemoteStats(nextStats);
       setProgressStatsError(null);
       return nextStats;
@@ -156,6 +171,15 @@ export function useTrainingProgress(initialProduct?: VoiceFlexProduct) {
     void refreshProgressStats();
   }, [refreshProgressStats]);
 
+  const setKit = useCallback(
+    (nextKit: VoiceFlexKit) => {
+      if (!activeProduct) return;
+      setStoredKit(activeProduct, nextKit, "manual");
+      setKitState(getStoredKit(activeProduct));
+    },
+    [activeProduct]
+  );
+
   const effectiveProgress =
     progress && remoteStats
       ? {
@@ -168,6 +192,8 @@ export function useTrainingProgress(initialProduct?: VoiceFlexProduct) {
 
   return {
     activeProduct,
+    kit: kit ?? (activeProduct ? getStoredKit(activeProduct) : null),
+    setKit,
     progress: effectiveProgress,
     loading: !hydrated,
     hydrated,
