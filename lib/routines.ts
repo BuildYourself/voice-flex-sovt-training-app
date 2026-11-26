@@ -275,7 +275,7 @@ export function buildRoutineSession(id: RoutineId, kit: VoiceFlexKit, productTyp
         tips: text.tips,
         avoid: text.avoid,
         requiresPiano: exercise.requiresPiano,
-        demoSteps: exercise.demoSteps?.(profile),
+        demoSteps: exercise.demoSteps?.(profile, step.level),
         demoAudioSrc: exercise.demoAudioSrc ?? null,
         accompanimentAudioSrc: exercise.accompanimentAudioSrc ?? null,
         guide: exercise.guide,

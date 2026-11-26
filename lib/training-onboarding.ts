@@ -60,21 +60,22 @@ function kitStep(kit: VoiceFlexKit): TrainingOnboardingStep {
         "3 mm metal straw: stronger, once 5 mm feels easy",
         "Seal your lips softly around the straw",
       ],
-      imageSrc: "/images/session/easy-bubbles-step-1.png",
+      imageSrc: "/images/exercises/setup-straw.webp",
     };
   }
 
   if (kit === "pro" || kit === "core") {
     return {
       ...base,
-      title: kit === "pro" ? "Your straws, caps and bottle" : "Your straws and caps",
+      title: kit === "pro" ? "Your straws, caps and water cup" : "Your straws and caps",
       body: "The caps go on the end of the metal straw. Each one has a smaller hole, so it holds the air back a bit more.",
       bullets: [
         "No cap: the lightest",
         "White cap: light. Grey cap: medium. Black cap: strong",
-        ...(kit === "pro" ? ["Wide silicone straw in the bottle with water: for bubbling"] : []),
+        ...(kit === "pro" ? ["Thick silicone straw in the water cup: for bubbling"] : []),
         "Start with no cap or the white cap",
       ],
+      imageSrc: "/images/exercises/setup-cap.webp",
     };
   }
 
@@ -88,7 +89,7 @@ function kitStep(kit: VoiceFlexKit): TrainingOnboardingStep {
       "Set the slider where the air feels gently held back",
       "Keep the same easy feel the whole time",
     ],
-    imageSrc: "/images/onboarding/3-adjust-resistance.png",
+    imageSrc: "/images/exercises/setup-go.webp",
   };
 }
 
@@ -156,6 +157,7 @@ export function getTrainingOnboardingConfig(
         visualTitle: "Short and often",
         visualSubtitle: "2 to 10 minutes, 1 to 3 times a day",
         visualKind: "ready",
+        imageSrc: `/images/exercises/${isGo ? "seal-check-go" : "seal-check-straw"}.webp`,
       },
       {
         id: "stay-safe",

@@ -95,7 +95,7 @@ export function TrainingRoutinePicker({ productType }: { productType: VoiceFlexP
                         : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:text-electric-700"
                     )}
                   >
-                    {option === "pro" ? "I have caps + bottle" : "I have the straw set"}
+                    {option === "pro" ? "I have the caps set" : "I have the straw set"}
                   </button>
                 ))}
               </div>

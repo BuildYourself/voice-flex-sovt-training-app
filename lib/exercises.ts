@@ -32,20 +32,20 @@ export interface ExerciseDefinition {
   /** Guide tones generated in the browser (lib/guide-tones.ts). */
   guide?: GuidePattern;
   text: (kit: KitProfile, level: ResistanceLevel) => ExerciseText;
-  demoSteps?: (kit: KitProfile) => TrainingDemoStep[] | undefined;
+  demoSteps?: (kit: KitProfile, level: ResistanceLevel) => TrainingDemoStep[] | undefined;
 }
 
 function waterDemo(kit: KitProfile): TrainingDemoStep[] | undefined {
   if (!kit.hasWater) return undefined;
-  // The existing drawings show the original straw set. Other kits get the
-  // same steps as text until their own drawings are approved.
+  // The original drawings show the straw set's bottle and yellow straw. The
+  // caps set gets its own water cup drawing.
   const withImages = kit.kit === "pro_classic";
   return [
     {
       title: "Step 1",
       subtitle: "Set up",
-      imageSrc: withImages ? "/images/session/easy-bubbles-step-1.png" : undefined,
-      bullets: [kit.kit === "pro" ? "Fill the bottle about halfway" : "Fill a glass or bottle about halfway", "Straw about 2 cm under the water", "Sit tall, shoulders relaxed"],
+      imageSrc: withImages ? "/images/session/easy-bubbles-step-1.png" : `${IMG}/water-cup.webp`,
+      bullets: [kit.kit === "pro" ? "Fill the water cup about halfway" : "Fill a glass or bottle about halfway", "Straw about 2 cm under the water", "Sit tall, shoulders relaxed"],
     },
     {
       title: "Step 2",
@@ -71,10 +71,66 @@ function bubbleHumDemo(kit: KitProfile): TrainingDemoStep[] | undefined {
     {
       title: "Step 3",
       subtitle: "Add voice",
-      imageSrc: kit.kit === "pro_classic" ? "/images/session/soft-mmm-step-3.png" : undefined,
+      imageSrc: kit.kit === "pro_classic" ? "/images/session/soft-mmm-step-3.png" : `${IMG}/water-cup.webp`,
       bullets: ["Hum a soft \"mmm\" through the straw", "Bubbles stay small", "No pushing"],
     },
   ];
+}
+
+const IMG = "/images/exercises";
+const PAT = "/images/patterns";
+
+/** The tool at the lips, drawn for this kit. A caps kit on its lightest step uses the plain straw. */
+function setupImage(kit: KitProfile, level: ResistanceLevel) {
+  if (kit.kit === "go") return `${IMG}/setup-go.webp`;
+  if (kit.kit === "pro_classic" || level === "lightest") return `${IMG}/setup-straw.webp`;
+  return `${IMG}/setup-cap.webp`;
+}
+
+function setupStep(kit: KitProfile, level: ResistanceLevel): TrainingDemoStep {
+  return {
+    title: "Step 1",
+    subtitle: "Set up",
+    imageSrc: setupImage(kit, level),
+    bullets: [
+      kit.resistanceTool[level],
+      kit.kit === "go" ? "Lips against the wide end, never inside" : "Lips sealed softly around the straw",
+      "Sit or stand tall, shoulders loose",
+    ],
+  };
+}
+
+function shapeStep(pattern: string, bullets: string[]): TrainingDemoStep {
+  return { title: "Step 2", subtitle: "The shape", imageSrc: `${PAT}/${pattern}.svg`, bullets };
+}
+
+function sealStep(kit: KitProfile): TrainingDemoStep {
+  return {
+    title: "Step 3",
+    subtitle: "Check your seal",
+    imageSrc: `${IMG}/${kit.kit === "go" ? "seal-check-go" : "seal-check-straw"}.webp`,
+    bullets: ["Pinch your nose while you hum", "Sound stays the same = good seal", "Soft to medium volume"],
+  };
+}
+
+/** Set up + the shape of the sound, plus the seal check for warm-up starters. */
+function shapeDemo(pattern: string, bullets: string[], withSeal = false) {
+  return (kit: KitProfile, level: ResistanceLevel): TrainingDemoStep[] => {
+    const steps = [setupStep(kit, level), shapeStep(pattern, bullets)];
+    return withSeal ? [...steps, sealStep(kit)] : steps;
+  };
+}
+
+/** Through the tool first, then the same thing without it. */
+function thenWithoutDemo(subtitle: string, image: string, bullets: string[]) {
+  return (kit: KitProfile, level: ResistanceLevel): TrainingDemoStep[] => [
+    setupStep(kit, level),
+    { title: "Step 2", subtitle, imageSrc: `${IMG}/${image}.webp`, bullets },
+  ];
+}
+
+function singleDemo(subtitle: string, image: string, bullets: string[]) {
+  return (): TrainingDemoStep[] => [{ title: "How to", subtitle, imageSrc: `${IMG}/${image}.webp`, bullets }];
 }
 
 export const EXERCISES: Record<string, ExerciseDefinition> = {
@@ -109,6 +165,7 @@ export const EXERCISES: Record<string, ExerciseDefinition> = {
     title: "Steady Air",
     skills: ["breath"],
     toolKind: "resistance",
+    demoSteps: shapeDemo("steady-air", ["Air only, no voice", "5 to 8 seconds per breath out", "Rest, then repeat"], true),
     text: (kit) => ({
       description: `${kit.sealTip} Blow out through ${kit.toolNoun} with no voice for 5 to 8 seconds. Keep the air even and quiet, like cooling a spoon of soup. Rest, breathe in, repeat.`,
       whatToDoNow: "Breathe out slowly and evenly, rest, then go again until the timer ends.",
@@ -121,6 +178,7 @@ export const EXERCISES: Record<string, ExerciseDefinition> = {
     title: "Long Hum Hold",
     skills: ["breath"],
     toolKind: "resistance",
+    demoSteps: shapeDemo("long-hum-hold", ["One easy note", "Stop before it gets hard", "Tap Start hold to time it"]),
     guide: "hold-note",
     text: (kit) => ({
       description: `Hum one easy note through ${kit.toolNoun} and hold it for as long as it stays easy. Stop before you run out of air. Rest, then do it again. Three holds is plenty.`,
@@ -134,6 +192,7 @@ export const EXERCISES: Record<string, ExerciseDefinition> = {
     title: "Waves",
     skills: ["flexibility", "breath"],
     toolKind: "resistance",
+    demoSteps: shapeDemo("waves", ["Small, slow waves", "Soft volume", "Easy air the whole time"], true),
     demoAudioSrc: "/audio/session/waves-demo.mp3",
     text: (kit) => ({
       description: `Hum through ${kit.toolNoun} and let the pitch move up and down a little, like small waves. Keep it soft, slow and relaxed.`,
@@ -147,6 +206,7 @@ export const EXERCISES: Record<string, ExerciseDefinition> = {
     title: "Siren",
     skills: ["flexibility"],
     toolKind: "resistance",
+    demoSteps: shapeDemo("siren", ["Start low and easy", "Glide up only as high as stays easy", "Glide back down"], true),
     demoAudioSrc: "/audio/session/siren-demo.mp3",
     text: (kit) => ({
       description: `Glide slowly from your lowest easy note up to your highest easy note and back down, through ${kit.toolNoun}. Only go as high and as low as feels easy.`,
@@ -160,6 +220,7 @@ export const EXERCISES: Record<string, ExerciseDefinition> = {
     title: "Pitch Hills",
     skills: ["flexibility"],
     toolKind: "resistance",
+    demoSteps: shapeDemo("pitch-hills", ["Hold one easy note", "A small rise and fall every few seconds", "Push from the belly"]),
     text: (kit) => ({
       description: `Hold one easy note through ${kit.toolNoun}. Every few seconds, let the pitch and volume rise a little and fall back, like a small hill. The push comes from your belly, not your throat.`,
       whatToDoNow: "Make 5 or 6 small hills on one breath, then rest and repeat.",
@@ -172,6 +233,7 @@ export const EXERCISES: Record<string, ExerciseDefinition> = {
     title: "Slide 1-5-1",
     skills: ["flexibility"],
     toolKind: "resistance",
+    demoSteps: shapeDemo("slide-151", ["Five notes up and back", "Next round starts one note higher", "Skip rounds that feel too high"]),
     guide: "slide-151",
     text: (kit) => ({
       description: `Listen to the five notes, then slide them up and back down through ${kit.toolNoun} in one smooth glide. The next round starts one note higher.`,
@@ -185,6 +247,7 @@ export const EXERCISES: Record<string, ExerciseDefinition> = {
     title: "Gentle Descents",
     skills: ["flexibility"],
     toolKind: "resistance",
+    demoSteps: shapeDemo("gentle-descents", ["Start comfortably high", "Glide down only", "Soft and slow"]),
     text: (kit) => ({
       description: `Start on a comfortable high note and glide down to a low note through ${kit.toolNoun}. Only go down. Soft and slow.`,
       whatToDoNow: "Glide from high to low, rest, and repeat.",
@@ -197,6 +260,7 @@ export const EXERCISES: Record<string, ExerciseDefinition> = {
     title: "Steady Note",
     skills: ["pitch"],
     toolKind: "resistance",
+    demoSteps: shapeDemo("steady-note", ["Match the guide note", "Hold it for 5 seconds", "No wobble"]),
     guide: "steady-notes",
     text: (kit) => ({
       description: `Match the guide note and hum it through ${kit.toolNoun}. Hold it for 5 seconds without a wobble. When the next note plays, move to it.`,
@@ -210,6 +274,7 @@ export const EXERCISES: Record<string, ExerciseDefinition> = {
     title: "2 Notes",
     skills: ["pitch"],
     toolKind: "resistance",
+    demoSteps: shapeDemo("two-notes", ["One low and one high note", "Clean, easy jump", "Air stays steady"]),
     requiresPiano: true,
     demoAudioSrc: "/audio/session/two-notes-demo.mp3",
     accompanimentAudioSrc: "/audio/session/two-notes-piano.mp3",
@@ -225,6 +290,7 @@ export const EXERCISES: Record<string, ExerciseDefinition> = {
     title: "5 Notes",
     skills: ["pitch"],
     toolKind: "resistance",
+    demoSteps: shapeDemo("five-notes", ["Five notes up, then down", "Even steps", "Relaxed and clean"]),
     requiresPiano: true,
     demoAudioSrc: "/audio/session/five-notes-demo.mp3",
     accompanimentAudioSrc: "/audio/session/five-notes-piano.mp3",
@@ -240,6 +306,7 @@ export const EXERCISES: Record<string, ExerciseDefinition> = {
     title: "Arpeggio",
     skills: ["flexibility", "pitch"],
     toolKind: "resistance",
+    demoSteps: shapeDemo("arpeggio", ["Notes 1, 3, 5, 3, 1", "Connected and light", "No push at the top"]),
     requiresPiano: true,
     demoAudioSrc: "/audio/session/arpeggio-demo.mp3",
     accompanimentAudioSrc: "/audio/session/arpeggio-piano.mp3",
@@ -255,6 +322,7 @@ export const EXERCISES: Record<string, ExerciseDefinition> = {
     title: "Swell",
     skills: ["pitch"],
     toolKind: "resistance",
+    demoSteps: shapeDemo("swell", ["Same note all the way", "Soft, a little louder, soft", "Pitch stays put"]),
     guide: "swell",
     text: (kit) => ({
       description: `Hold one note through ${kit.toolNoun}. Start soft, get a little louder, then soft again, all in one breath. The pitch stays the same the whole time.`,
@@ -268,6 +336,7 @@ export const EXERCISES: Record<string, ExerciseDefinition> = {
     title: "Straw Counting",
     skills: ["speaking"],
     toolKind: "resistance",
+    demoSteps: thenWithoutDemo("Then without it", "voice-check", ["Count 1 to 10 out loud", "Keep the same easy buzz", "Normal speaking volume"]),
     text: (kit) => ({
       description: `Count slowly from 1 to 10 through ${kit.toolNoun}, as if you were speaking through it. Then take it away and count 1 to 10 out loud with the same easy feel.`,
       whatToDoNow: "Count through the tool, then without it. Repeat.",
@@ -280,6 +349,7 @@ export const EXERCISES: Record<string, ExerciseDefinition> = {
     title: "Straw to Words",
     skills: ["speaking"],
     toolKind: "resistance",
+    demoSteps: thenWithoutDemo("Then without it", "voice-check", ["Say the same words out loud", "Same easy, forward feel", "Slow and clear"]),
     text: (kit) => ({
       description: `Through ${kit.toolNoun}, say "who", "why", "one", then "Who are you?". Then take it away and say the same words out loud. Keep the same easy, forward feel.`,
       whatToDoNow: "Words through the tool first, then the same words without it.",
@@ -292,6 +362,7 @@ export const EXERCISES: Record<string, ExerciseDefinition> = {
     title: "Hum to Speech",
     skills: ["speaking"],
     toolKind: "none",
+    demoSteps: singleDemo("Mm-hmm into words", "hum-to-speech", ["Say \"mm-hmm\" like you're agreeing", "Feel the buzz at your lips", "Then: many, more, My name is..."]),
     text: () => ({
       description: "No tool for this one. Say \"mm-hmm\" a few times, like you're agreeing with someone. Then say \"many\", \"more\" and \"My name is...\", keeping that light buzz at your lips.",
       whatToDoNow: "Go from \"mm-hmm\" into a few easy words. Keep the buzz.",
@@ -304,6 +375,7 @@ export const EXERCISES: Record<string, ExerciseDefinition> = {
     title: "Your Song",
     skills: ["flexibility"],
     toolKind: "resistance",
+    demoSteps: thenWithoutDemo("Then sing it", "your-song", ["The tune through the tool first", "Then one line without it", "Soft to medium volume"]),
     text: (kit) => ({
       description: `Sing a song you know well through ${kit.toolNoun}, just the tune with no words. Then take it away and sing one line of it normally.`,
       whatToDoNow: "Sing the tune through the tool, then one line without it.",
@@ -316,6 +388,7 @@ export const EXERCISES: Record<string, ExerciseDefinition> = {
     title: "Yawn-Sigh",
     skills: [],
     toolKind: "none",
+    demoSteps: singleDemo("Yawn, then sigh", "yawn-sigh", ["Gentle yawn, open throat", "Sigh from high to low", "Let your shoulders drop"]),
     text: () => ({
       description: "Start a gentle yawn, then let it turn into a sigh that slides from high to low. Let your shoulders drop as you sigh.",
       whatToDoNow: "Yawn, then sigh from high to low. Two or three times.",
@@ -328,6 +401,7 @@ export const EXERCISES: Record<string, ExerciseDefinition> = {
     title: "Voice Check",
     skills: [],
     toolKind: "none",
+    demoSteps: singleDemo("Notice the difference", "voice-check", ["Put the tool down", "Say or sing a short line", "Notice what feels easier"]),
     text: (kit) => ({
       description: `Put ${kit.toolNoun} down. Say or sing a short line and notice how it feels. Easier? Clearer? Keep that feel when you use your voice today.`,
       whatToDoNow: "Speak or sing a short line and notice the difference.",

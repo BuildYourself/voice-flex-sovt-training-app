@@ -6,7 +6,7 @@ import type { VoiceFlexProduct } from "@/lib/training-product";
  * namespace. The kit decides the wording: which straw, cap or trainer to use.
  *
  * - pro_classic: original Voice Flex Pro straw set (B0FZVBL3JX)
- * - pro:         Voice Flex Pro with caps + bottle (B0HFKM5D8V, B0HFKJDKCV)
+ * - pro:         Voice Flex Pro caps set with water cup (B0HFKM5D8V, B0HFKJDKCV)
  * - core:        Voice Flex Core, caps without water (B0HFRD6FF4, B0HFRJBX5L)
  * - go:          Voice Flex GO slider trainer (B0HDZRZL8B, B0HDZCGCTG, B0H299R3KN)
  */
@@ -65,11 +65,11 @@ export const KIT_PROFILES: Record<VoiceFlexKit, KitProfile> = {
   pro: {
     kit: "pro",
     productType: "pro",
-    name: "Voice Flex Pro - caps and bottle",
-    contents: "metal straws, white, grey and black caps, a wide silicone bubbling straw and a bottle",
+    name: "Voice Flex Pro - caps set",
+    contents: "metal, bamboo and silicone straws, white, grey and black caps, and a water cup",
     hasWater: true,
-    waterTool: "Wide silicone straw + bottle with water",
-    waterSetup: "Put the wide silicone straw in the bottle with water, about 2 cm under the surface.",
+    waterTool: "Thick silicone straw + water cup",
+    waterSetup: "Fill the water cup about halfway and put the thick silicone straw in, about 2 cm under the surface.",
     resistanceTool: CAP_LADDER,
     sealTip: "Seal your lips softly around the straw so no air escapes.",
     toolNoun: "the straw",

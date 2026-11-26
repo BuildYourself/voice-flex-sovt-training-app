@@ -921,6 +921,24 @@ function MobileTrainingSession({
           </p>
           <p className="mt-4 text-base leading-7 text-slate-700">{currentStep.description}</p>
 
+          {currentStep.demoSteps?.length ? (
+            <div className="-mx-4 mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2" aria-label="How to do it">
+              {currentStep.demoSteps.map((demo) => (
+                <div key={`${currentStep.id}-${demo.title}`} className="w-[230px] shrink-0 snap-start rounded-2xl border border-blue-100 bg-blue-50/40 p-3">
+                  {demo.imageSrc ? (
+                    <img src={demo.imageSrc} alt={`${currentStep.title}: ${demo.subtitle}`} className="h-40 w-full rounded-xl bg-white object-contain" />
+                  ) : null}
+                  <p className="mt-2 text-sm font-black text-black">{demo.subtitle}</p>
+                  <ul className="mt-1 space-y-1 text-xs font-semibold leading-5 text-slate-600">
+                    {demo.bullets.map((bullet) => (
+                      <li key={bullet}>{bullet}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
           <div className="mt-5 flex justify-center">
             <MobileTimerRing progress={safeStepProgress} remainingSeconds={remainingSeconds} />
           </div>
@@ -1285,21 +1303,21 @@ function WatchDemoCard({
           {hasAudioDemo && !hasVisualDemo ? <KeyboardMusic className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
         </span>
         <div className="min-w-0 flex-1">
-          <h3 className="text-[28px] font-black leading-tight text-black">1. {hasVisualDemo ? "Watch Demo" : "Listen to Demo"}</h3>
+          <h3 className="text-[28px] font-black leading-tight text-black">1. {hasVisualDemo ? "How to do it" : "Listen to Demo"}</h3>
           <p className="mt-1 text-sm text-slate-600">
-            {hasVisualDemo ? "See how to set up and perform the exercise before you begin." : "Hear how the exercise should sound before you begin."}
+            {hasVisualDemo ? "Set up, then follow the shape of the sound." : "Hear how the exercise should sound before you begin."}
           </p>
         </div>
       </div>
 
       {hasVisualDemo ? (
-        <div className="mt-5 grid gap-5 md:grid-cols-3">
+        <div className={cn("mt-5 grid gap-5 sm:grid-cols-2", (currentStep.demoSteps?.length ?? 0) >= 3 && "2xl:grid-cols-3")}>
           {currentStep.demoSteps?.map((step, index) => (
             <div key={`${currentStep.id}-${step.title}`} className="rounded-2xl border border-blue-200 bg-white p-4 text-center">
               <h4 className="font-black text-black">{step.title}</h4>
               <p className="text-sm font-black text-black">{step.subtitle}</p>
               <div className="relative mt-4 overflow-hidden rounded-2xl bg-slate-50">
-                {step.imageSrc ? <img src={step.imageSrc} alt={`${currentStep.title} ${step.subtitle}`} className="h-36 w-full object-contain" /> : null}
+                {step.imageSrc ? <img src={step.imageSrc} alt={`${currentStep.title} ${step.subtitle}`} className="aspect-square w-full object-contain" /> : null}
                 <span className="absolute left-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-electric-600 text-sm font-black text-white">{index + 1}</span>
               </div>
               <ul className="mt-4 space-y-2 rounded-2xl bg-blue-50 p-3 text-left text-xs font-semibold leading-5 text-navy-950">
@@ -1313,7 +1331,24 @@ function WatchDemoCard({
             </div>
           ))}
         </div>
-      ) : hasAudioDemo ? (
+      ) : null}
+
+      {hasVisualDemo && hasAudioDemo ? (
+        <div className="mt-5 flex flex-wrap items-center gap-4">
+          <Button
+            variant="outline"
+            className="h-12 rounded-xl border-blue-200 px-7 font-black text-electric-700"
+            type="button"
+            disabled={demoDisabled}
+            onClick={() => onToggleDemo(currentStep)}
+          >
+            {playingAudio === "demo" ? <Pause className="mr-2 h-4 w-4 fill-current" /> : <Play className="mr-2 h-4 w-4 fill-current" />}
+            {playingAudio === "demo" ? "Pause Demo" : "Hear how it sounds"}
+          </Button>
+        </div>
+      ) : null}
+
+      {hasVisualDemo ? null : hasAudioDemo ? (
         <div className="mt-5 flex flex-wrap items-center gap-4 pl-0 md:pl-[58px]">
           <Button
             variant="outline"
