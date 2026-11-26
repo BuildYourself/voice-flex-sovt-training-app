@@ -527,14 +527,19 @@ export function TrainingSession({ productType, routineId = "daily" }: { productT
             </div>
           </header>
 
-          <div className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)_330px]">
-            <SessionFlow
-              steps={session.exercises}
-              currentStepIndex={currentStepIndex}
-              completedIds={completedIds}
-            />
+          {/* Laptops (1280-1759 px): exercise on the left, step list and overview on the right.
+              Wide screens: step list | exercise | overview. Three columns on a laptop left
+              the exercise column under 450 px wide. */}
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_300px] xl:grid-rows-[auto_1fr] xl:[grid-template-areas:'main_flow'_'main_aside'] min-[1760px]:grid-cols-[280px_minmax(0,1fr)_330px] min-[1760px]:grid-rows-[auto] min-[1760px]:[grid-template-areas:'flow_main_aside']">
+            <div className="xl:[grid-area:flow]">
+              <SessionFlow
+                steps={session.exercises}
+                currentStepIndex={currentStepIndex}
+                completedIds={completedIds}
+              />
+            </div>
 
-            <section className="space-y-5">
+            <section className="min-w-0 space-y-5 xl:[grid-area:main]">
               <Card className="overflow-hidden">
                 <CardContent className="p-6 md:p-8">
                   <div className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_230px]">
@@ -570,11 +575,11 @@ export function TrainingSession({ productType, routineId = "daily" }: { productT
                         </span>
                         <div>
                           <h3 className="text-[28px] font-black leading-tight text-black">
-                            2. {currentStep.accompanimentAudioSrc ? "Practice with Piano" : hasLoopingGuide(currentStep) ? "Practice with Guide Tones" : "Start Exercise"}
+                            2. {currentStep.accompanimentAudioSrc ? "Practice with the Piano Track" : hasLoopingGuide(currentStep) ? "Practice with Guide Tones" : "Start Exercise"}
                           </h3>
                           <p className="mt-1 text-sm text-slate-600">
                             {currentStep.accompanimentAudioSrc
-                              ? "Start the accompaniment and sing along for the full step."
+                              ? "The app plays the piano. Press start and sing along for the full step."
                               : hasLoopingGuide(currentStep)
                                 ? "Start the timer. The guide tones play in your voice range."
                                 : "Start the timer and follow the exercise instructions."}
@@ -616,7 +621,7 @@ export function TrainingSession({ productType, routineId = "daily" }: { productT
               </div>
             </section>
 
-            <aside className="space-y-6">
+            <aside className="space-y-6 xl:[grid-area:aside]">
               <Card>
                 <CardContent className="p-7">
                   <div className="flex items-start gap-4">
@@ -1246,9 +1251,9 @@ function SessionFlow({
           <div className="mt-7 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-slate-600">
             <p className="flex items-center gap-2 font-black text-electric-700">
               <KeyboardMusic className="h-4 w-4" />
-              Piano required
+              Piano notes included
             </p>
-            <p className="mt-1">These exercises include piano guidance.</p>
+            <p className="mt-1">The app plays the notes for you.</p>
           </div>
         )}
       </CardContent>

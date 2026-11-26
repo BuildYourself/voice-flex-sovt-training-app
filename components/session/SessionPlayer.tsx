@@ -229,8 +229,8 @@ export function SessionPlayer({
               <div className="min-w-0 flex-1">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
-                    <p className="text-3xl font-black text-navy-950 sm:text-[35px]">{step.requiresPiano ? "2. Practice with Piano" : "2. Start Exercise"}</p>
-                    <p className="mt-1 text-slate-600">{step.requiresPiano ? "Start the accompaniment and sing along for the full step." : "Start the timer and follow the exercise instructions."}</p>
+                    <p className="text-3xl font-black text-navy-950 sm:text-[35px]">{step.requiresPiano ? "2. Practice with the Piano Track" : "2. Start Exercise"}</p>
+                    <p className="mt-1 text-slate-600">{step.requiresPiano ? "The app plays the piano. Press start and sing along for the full step." : "Start the timer and follow the exercise instructions."}</p>
                   </div>
                   <div className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700">
                     <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />

@@ -55,9 +55,9 @@ export function SessionFlow({
           <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
             <p className="flex items-center gap-2 font-bold text-electric-700">
               <Piano className="h-4 w-4" />
-              Piano required
+              Piano notes included
             </p>
-            <p className="mt-1 text-slate-600">These exercises include piano accompaniment.</p>
+            <p className="mt-1 text-slate-600">The app plays the notes for you.</p>
           </div>
         )}
       </CardContent>
