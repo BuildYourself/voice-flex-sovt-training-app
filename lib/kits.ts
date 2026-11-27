@@ -203,8 +203,8 @@ export function getKitProfile(kit: VoiceFlexKit, caps?: CapColours): KitProfile 
 
 /* ------------------------------------------------------------------ */
 /* Local storage: the kit for each product route on this device.       */
-/* "order" = taken from the verified order, "manual" = the user chose. */
-/* A manual choice is never overwritten by the order lookup.           */
+/* The order's ASIN decides the kit. "manual" is left over from the    */
+/* old kit switch: the next order lookup replaces it.                  */
 /* ------------------------------------------------------------------ */
 
 type StoredKit = { kit: VoiceFlexKit; source: "order" | "manual"; caps?: CapColours };
@@ -242,7 +242,7 @@ export function getStoredCaps(productType: VoiceFlexProduct): CapColours {
 
 /**
  * Save the kit. caps comes from the order (getCapColoursForOrder) and is kept when not given.
- * A kit picked by hand is never replaced by the order, but the order still sets the cap colours.
+ * The order always wins, also over a kit picked with the old switch.
  */
 export function setStoredKit(
   productType: VoiceFlexProduct,
@@ -254,8 +254,7 @@ export function setStoredKit(
   if (!getKitOptions(productType).includes(kit)) return;
   const existing = readStoredKit(productType);
   const nextCaps = caps ?? existing?.caps;
-  const keepManual = source === "order" && existing?.source === "manual";
-  const stored: StoredKit = keepManual && existing ? { ...existing } : { kit, source };
+  const stored: StoredKit = { kit, source };
   if (nextCaps) stored.caps = nextCaps;
   try {
     const next = JSON.stringify(stored);

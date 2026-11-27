@@ -74,6 +74,7 @@ export function clearPersonalData(productType: VoiceFlexProduct) {
       `voiceflex_order_source_${productType}`,
       `voiceflex_order_asin_${productType}`,
       `voiceflex_sync_meta_${productType}`,
+      `voiceflex_library_${productType}`,
       "voiceflex_voice_range",
     ];
     keys.forEach((key) => window.localStorage.removeItem(key));

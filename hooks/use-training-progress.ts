@@ -157,7 +157,7 @@ export function useTrainingProgress(initialProduct?: VoiceFlexProduct) {
 
       setOrderAsin(activeProduct, payload.sourceAsin);
       if (isVoiceFlexKit(payload.kit)) {
-        // The order decides the kit unless the user picked one by hand.
+        // The order's ASIN decides the kit.
         setStoredKit(activeProduct, payload.kit, "order", getCapColoursForOrder(payload.sourceAsin));
         setKitState(getStoredKit(activeProduct));
         setCapsState(getStoredCaps(activeProduct));
@@ -176,16 +176,6 @@ export function useTrainingProgress(initialProduct?: VoiceFlexProduct) {
     void refreshProgressStats();
   }, [refreshProgressStats]);
 
-  const setKit = useCallback(
-    (nextKit: VoiceFlexKit) => {
-      if (!activeProduct) return;
-      setStoredKit(activeProduct, nextKit, "manual");
-      setKitState(getStoredKit(activeProduct));
-      setCapsState(getStoredCaps(activeProduct));
-    },
-    [activeProduct]
-  );
-
   const effectiveProgress =
     progress && remoteStats
       ? {
@@ -200,8 +190,9 @@ export function useTrainingProgress(initialProduct?: VoiceFlexProduct) {
     activeProduct,
     kit: kit ?? (activeProduct ? getStoredKit(activeProduct) : null),
     caps,
-    setKit,
     progress: effectiveProgress,
+    /** Routines finished on this account, from the server. null until it answers. */
+    routinesCompleted: remoteStats ? remoteStats.fullSessions : null,
     loading: !hydrated,
     hydrated,
     progressStatsError,

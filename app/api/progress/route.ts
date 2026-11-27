@@ -14,6 +14,7 @@ import {
   secondsToMinutes,
 } from "@/lib/order-progress-server";
 import { getKitProfile } from "@/lib/kits";
+import { customRoutineParam, describeCustomSlot, isCustomSlot, parseLibrary } from "@/lib/custom-library";
 import { getRoutineBySlot } from "@/lib/routines";
 import { isVoiceFlexProduct } from "@/lib/training-product";
 import {
@@ -105,6 +106,21 @@ export async function POST(request: Request) {
     }
 
     const rows = activityRows ?? [];
+    // The person's own routines, to name their slots (101-199) in the history.
+    const storedSettings = (progress.settings && typeof progress.settings === "object" ? progress.settings : {}) as Record<string, unknown>;
+    const libraryEntry = storedSettings.library as { v?: unknown } | undefined;
+    const library = parseLibrary(typeof libraryEntry?.v === "string" ? libraryEntry.v : null);
+    const routineInfo = (slot: number | null | undefined) => {
+      if (slot && isCustomSlot(slot)) {
+        const custom = library.routines.find((routine) => routine.slot === slot);
+        return {
+          id: custom ? customRoutineParam(custom.id) : `custom-${slot}`,
+          title: describeCustomSlot(library, slot)?.title ?? "Your own routine",
+        };
+      }
+      const routine = getRoutineBySlot(slot);
+      return { id: routine.id as string, title: routine.title };
+    };
     const activeRows = rows.filter((row) => (row.seconds_practiced ?? 0) > 0 || (row.completed_exercise_ids ?? []).length > 0);
     const practiceDates = activeRows.map((row) => row.activity_date);
     const practiceStreak = progress.practice_streak ?? 0;
@@ -117,7 +133,7 @@ export async function POST(request: Request) {
     const todayRoutines = rows
       .filter((row) => row.activity_date === today)
       .map((row) => {
-        const routine = getRoutineBySlot(row.program_day);
+        const routine = routineInfo(row.program_day);
         return {
           routineId: routine.id,
           title: routine.title,
@@ -139,7 +155,7 @@ export async function POST(request: Request) {
         entry.secondsPracticed += row.seconds_practiced ?? 0;
         entry.completedCount += row.completed_exercise_ids?.length ?? 0;
         entry.fullSessionCompleted = entry.fullSessionCompleted || Boolean(row.full_session_completed);
-        if (row.full_session_completed) entry.routines.push(getRoutineBySlot(row.program_day).title);
+        if (row.full_session_completed) entry.routines.push(routineInfo(row.program_day).title);
       });
     const todayCompletedIds = todayRow?.completed_exercise_ids ?? [];
     const todaySeconds = todayRow?.seconds_practiced ?? 0;
@@ -231,7 +247,7 @@ export async function POST(request: Request) {
       ],
       recentActivity: rows.slice(0, 5).map((row) => ({
         date: row.activity_date,
-        label: `${dateLabel(row.activity_date)} • ${getRoutineBySlot(row.program_day).title}`,
+        label: `${dateLabel(row.activity_date)} • ${routineInfo(row.program_day).title}`,
         subtitle: row.full_session_completed
           ? "Routine completed"
           : `${row.completed_exercise_ids?.length ?? 0} exercises completed`,

@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import { Activity, Clock, Info, Leaf, ShieldCheck, Sparkles, Volume1, Waves } from "lucide-react";
-import { CAP_NAMES, getDefaultKit, getKitPhoto, getKitProfile, isBlueGoOrder, type CapColours, type VoiceFlexKit } from "@/lib/kits";
+import { CAP_NAMES, getDefaultKit, getKitPhoto, getKitProfile, type CapColours, type VoiceFlexKit } from "@/lib/kits";
 import { getProductName, type VoiceFlexProduct } from "@/lib/training-product";
 
 export interface TrainingOnboardingStep {
@@ -105,8 +105,7 @@ export function getTrainingOnboardingConfig(
 ): TrainingOnboardingConfig {
   const productName = getProductName(productType);
   const isGo = kit === "go";
-  // The staged GO pictures show the blue GO. Everyone else sees a photo of their own kit.
-  const blueGo = isGo && isBlueGoOrder(sourceAsin);
+  // Everyone sees the same product photos as the home page, in the colour of their own kit.
 
   return {
     productType,
@@ -124,8 +123,8 @@ export function getTrainingOnboardingConfig(
         visualTitle: productName,
         visualSubtitle: "Guided SOVT voice training",
         visualKind: isGo ? "go" : "pro",
-        imageSrc: blueGo ? "/images/onboarding/1-welcome.png" : getKitPhoto(productType, kit, sourceAsin, caps),
-        imageFit: blueGo ? "cover" : "contain",
+        imageSrc: getKitPhoto(productType, kit, sourceAsin, caps),
+        imageFit: "contain",
       },
       {
         id: "sovt",
@@ -183,7 +182,6 @@ export function getTrainingOnboardingConfig(
         visualTitle: "Safe practice",
         visualSubtitle: "Easy airflow, no strain",
         visualKind: "safety",
-        imageSrc: blueGo ? "/images/onboarding/4-safety.png" : undefined,
       },
     ],
     infoCards: [

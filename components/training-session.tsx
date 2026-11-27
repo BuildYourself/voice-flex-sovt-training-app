@@ -23,6 +23,7 @@ import {
   SkipForward,
   Star,
   Target,
+  Volume2,
   Waves,
   X
 } from "lucide-react";
@@ -39,6 +40,7 @@ import { getVoiceRange, GuideTonePlayer, setVoiceRange as storeVoiceRange, type 
 import { getDefaultKit } from "@/lib/kits";
 import { REVIEW_MODAL_AFTER_ROUTINES } from "@/lib/review-request";
 import type { RoutineId } from "@/lib/routines";
+import { buildCustomRoutineSession, type CustomRoutine, type UserLibrary } from "@/lib/custom-library";
 import type { VoiceFlexProduct } from "@/lib/training-product";
 import { getRoutineDayKey } from "@/lib/training-progress";
 import {
@@ -61,7 +63,16 @@ function createSessionRunId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-export function TrainingSession({ productType, routineId = "daily" }: { productType: VoiceFlexProduct; routineId?: RoutineId }) {
+export function TrainingSession({
+  productType,
+  routineId = "daily",
+  custom
+}: {
+  productType: VoiceFlexProduct;
+  routineId?: RoutineId;
+  /** One of the person's own routines, instead of a built-in one. */
+  custom?: { routine: CustomRoutine; library: UserLibrary };
+}) {
   const router = useRouter();
   const {
     progress,
@@ -74,10 +85,13 @@ export function TrainingSession({ productType, routineId = "daily" }: { productT
     refreshProgressStats
   } = useTrainingProgress(productType);
   const session = useMemo(
-    () => getTrainingSessionConfig(productType, kit ?? getDefaultKit(productType), routineId),
+    () =>
+      custom
+        ? buildCustomRoutineSession(custom.routine, custom.library, kit ?? getDefaultKit(productType), productType)
+        : getTrainingSessionConfig(productType, kit ?? getDefaultKit(productType), routineId),
     // caps: the exercise text names the cap colours, which arrive with the order.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [productType, kit, caps, routineId]
+    [productType, kit, caps, routineId, custom]
   );
   // The routine slot is saved as program_day. Completion is kept per date and
   // routine, so tomorrow (or another routine) starts fresh.
@@ -957,16 +971,12 @@ function MobileTrainingSession({
               {actionLabel}
             </Button>
             {currentStep.demoAudioSrc ? (
-              <Button
-                variant="outline"
-                className="col-span-2 h-12 rounded-2xl border-blue-200 bg-white text-base font-black text-electric-700"
-                type="button"
+              <DemoButton
+                className="col-span-2 w-full"
+                playing={playingAudio === "demo"}
                 disabled={mode === "practice"}
                 onClick={() => onToggleDemo(currentStep)}
-              >
-                {playingAudio === "demo" ? <Pause className="mr-2 h-5 w-5 fill-current" /> : <Play className="mr-2 h-5 w-5 fill-current" />}
-                Hear how it sounds
-              </Button>
+              />
             ) : null}
             <Button variant="outline" className="h-12 rounded-2xl border-slate-200 bg-white font-black text-electric-700" onClick={onPrevious} disabled={currentStepIndex === 0}>
               <SkipBack className="mr-2 h-4 w-4" />
@@ -1343,33 +1353,14 @@ function WatchDemoCard({
       ) : null}
 
       {hasVisualDemo && hasAudioDemo ? (
-        <div className="mt-5 flex flex-wrap items-center gap-4">
-          <Button
-            variant="outline"
-            className="h-12 rounded-xl border-blue-200 px-7 font-black text-electric-700"
-            type="button"
-            disabled={demoDisabled}
-            onClick={() => onToggleDemo(currentStep)}
-          >
-            {playingAudio === "demo" ? <Pause className="mr-2 h-4 w-4 fill-current" /> : <Play className="mr-2 h-4 w-4 fill-current" />}
-            {playingAudio === "demo" ? "Pause Demo" : "Hear how it sounds"}
-          </Button>
+        <div className="mt-6 flex flex-wrap items-center gap-4">
+          <DemoButton playing={playingAudio === "demo"} disabled={demoDisabled} onClick={() => onToggleDemo(currentStep)} />
         </div>
       ) : null}
 
       {hasVisualDemo ? null : hasAudioDemo ? (
         <div className="mt-5 flex flex-wrap items-center gap-4 pl-0 md:pl-[58px]">
-          <Button
-            variant="outline"
-            className="h-12 rounded-xl border-blue-200 px-7 font-black text-electric-700"
-            type="button"
-            disabled={demoDisabled}
-            onClick={() => onToggleDemo(currentStep)}
-          >
-            {playingAudio === "demo" ? <Pause className="mr-2 h-4 w-4 fill-current" /> : <Play className="mr-2 h-4 w-4 fill-current" />}
-            {playingAudio === "demo" ? "Pause Demo" : "Play Demo"}
-          </Button>
-          <span className="text-sm font-semibold text-slate-500">Demo</span>
+          <DemoButton playing={playingAudio === "demo"} disabled={demoDisabled} onClick={() => onToggleDemo(currentStep)} />
         </div>
       ) : (
         <div className="mt-5 rounded-2xl border border-blue-100 bg-white p-5 text-sm font-semibold text-slate-600">
@@ -1415,5 +1406,36 @@ function HelperList({ icon, title, items, tone }: { icon: ReactNode; title: stri
         </ul>
       </CardContent>
     </Card>
+  );
+}
+
+/** The voice demo. Big and filled so nobody misses it before they start. */
+function DemoButton({
+  playing,
+  disabled,
+  onClick,
+  className
+}: {
+  playing: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      aria-pressed={playing}
+      className={cn(
+        "inline-flex h-16 items-center justify-center gap-3 rounded-2xl border-2 border-electric-600 bg-blue-50 pl-3 pr-7 text-lg font-black text-electric-700 shadow-[0_10px_24px_-14px_rgba(23,107,255,0.9)] transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50",
+        className
+      )}
+    >
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-electric-600 text-white">
+        {playing ? <Pause className="h-5 w-5 fill-current" /> : <Volume2 className="h-5 w-5" />}
+      </span>
+      {playing ? "Pause the demo" : "Hear how it sounds"}
+    </button>
   );
 }
