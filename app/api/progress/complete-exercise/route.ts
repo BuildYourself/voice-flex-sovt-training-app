@@ -10,6 +10,7 @@ import {
   requestProfileSlot,
   resolveVerifiedOrder,
 } from "@/lib/order-progress-server";
+import { isCustomExerciseId, isCustomSlot } from "@/lib/custom-library";
 import { getExercise } from "@/lib/exercises";
 import { isRoutineSlot } from "@/lib/routines";
 import { isVoiceFlexProduct } from "@/lib/training-product";
@@ -60,14 +61,14 @@ export async function POST(request: Request) {
     const totalExercises = toPositiveNumber(body.totalExercises);
     const practiceDate = isDateString(body.practiceDate) ? body.practiceDate : null;
 
-    // programDay carries the routine slot (1 = Daily Session).
+    // programDay carries the routine slot (1 = Daily Session, 101-199 = the person's own routines).
     if (
       !orderNumber ||
       !productType ||
       !programDay ||
-      !isRoutineSlot(programDay) ||
+      !(isRoutineSlot(programDay) || isCustomSlot(programDay)) ||
       !exerciseId ||
-      !getExercise(exerciseId) ||
+      !(getExercise(exerciseId) || isCustomExerciseId(exerciseId)) ||
       !exerciseTitle ||
       !durationSeconds ||
       !totalExercises ||

@@ -14,6 +14,7 @@ import {
   requestProfileSlot,
   resolveVerifiedOrder,
 } from "@/lib/order-progress-server";
+import { describeCustomSlot, isCustomExerciseId, isCustomSlot, LIBRARY_MAX_CHARS, parseLibrary } from "@/lib/custom-library";
 import { getRoutineBySlot, isRoutineSlot } from "@/lib/routines";
 import { getTrainingSessionConfig } from "@/lib/training-sessions";
 import { isVoiceFlexProduct } from "@/lib/training-product";
@@ -27,11 +28,13 @@ export const runtime = "nodejs";
  */
 
 /** Settings that follow the user. Values are the raw strings the app keeps in browser storage. */
-const SYNCED_SETTINGS = ["kit", "voiceRange", "bestHold", "review", "appSettings"] as const;
+const SYNCED_SETTINGS = ["kit", "voiceRange", "bestHold", "review", "appSettings", "library"] as const;
 type SyncedSetting = (typeof SYNCED_SETTINGS)[number];
 type SettingEntry = { v: string; at: string };
 
 const MAX_VALUE_LENGTH = 2000;
+/** The person's own routines and exercises are bigger than the other settings. */
+const MAX_LENGTH: Partial<Record<SyncedSetting, number>> = { library: LIBRARY_MAX_CHARS };
 const MAX_COMPLETION_KEYS = 200;
 const RETURNED_COMPLETION_KEYS = 120;
 const DAY_KEY = /^(\d{4}-\d{2}-\d{2})-(\d+)$/;
@@ -59,10 +62,11 @@ function isIsoDate(value: unknown): value is string {
   return typeof value === "string" && !Number.isNaN(Date.parse(value));
 }
 
-function readSettingEntry(value: unknown): SettingEntry | null {
+function readSettingEntry(value: unknown, key?: SyncedSetting): SettingEntry | null {
   if (!value || typeof value !== "object") return null;
   const entry = value as { v?: unknown; at?: unknown };
-  if (typeof entry.v !== "string" || entry.v.length > MAX_VALUE_LENGTH || !isIsoDate(entry.at)) return null;
+  const maxLength = (key && MAX_LENGTH[key]) ?? MAX_VALUE_LENGTH;
+  if (typeof entry.v !== "string" || entry.v.length > maxLength || !isIsoDate(entry.at)) return null;
   // A clock far in the future would win every merge, so cap it at now.
   const at = Math.min(Date.parse(entry.at), Date.now());
   return { v: entry.v, at: new Date(at).toISOString() };
@@ -114,18 +118,36 @@ export async function POST(request: Request) {
     let progress: OrderProgressRow = await ensureOrderProgress(supabase, verified.order.id, productType, profileSlot);
     const kit = verified.kit;
 
+    // The person's own routines: the newest copy, from this device or the account.
+    const newestLibrary = (() => {
+      const stored = (progress.settings && typeof progress.settings === "object" ? progress.settings : {}) as Record<string, unknown>;
+      const sent = (local.settings && typeof local.settings === "object" ? local.settings : {}) as Record<string, unknown>;
+      const fromServer = readSettingEntry(stored.library, "library");
+      const fromDevice = readSettingEntry(sent.library, "library");
+      const winner = !fromServer ? fromDevice : !fromDevice ? fromServer : Date.parse(fromDevice.at) > Date.parse(fromServer.at) ? fromDevice : fromServer;
+      return parseLibrary(winner?.v ?? null);
+    })();
+
     // Length of each exercise inside each routine, for completions saved while offline.
     const routineCache = new Map<number, Map<string, number>>();
     const routineSteps = (slot: number) => {
       let steps = routineCache.get(slot);
       if (!steps) {
-        const session = getTrainingSessionConfig(productType, kit, getRoutineBySlot(slot).id);
-        steps = new Map(session.exercises.map((exercise) => [exercise.id, exercise.durationSeconds]));
+        if (isCustomSlot(slot)) {
+          steps = describeCustomSlot(newestLibrary, slot)?.seconds ?? new Map<string, number>();
+        } else {
+          const session = getTrainingSessionConfig(productType, kit, getRoutineBySlot(slot).id);
+          steps = new Map(session.exercises.map((exercise) => [exercise.id, exercise.durationSeconds]));
+        }
         routineCache.set(slot, steps);
       }
       return steps;
     };
-    const exerciseSeconds = (slot: number, exerciseId: string) => routineSteps(isRoutineSlot(slot) ? slot : 1).get(exerciseId) ?? 60;
+    const exerciseSeconds = (slot: number, exerciseId: string) =>
+      routineSteps(isRoutineSlot(slot) || isCustomSlot(slot) ? slot : 1).get(exerciseId) ?? 60;
+    const exerciseTitle = (slot: number, exerciseId: string) =>
+      getExercise(exerciseId)?.title ?? describeCustomSlot(newestLibrary, slot)?.titles.get(exerciseId) ?? exerciseId;
+    const isKnownExercise = (exerciseId: string) => Boolean(getExercise(exerciseId)) || isCustomExerciseId(exerciseId);
 
     const loadRows = async () => {
       const { data, error } = await supabase
@@ -156,9 +178,9 @@ export async function POST(request: Request) {
       const [, date, slotText] = match;
       const slot = Number(slotText);
       const age = dayDiff(today, date);
-      if (!isRoutineSlot(slot) || Number.isNaN(age) || age < -1 || age > 400) continue;
+      if ((!isRoutineSlot(slot) && !isCustomSlot(slot)) || Number.isNaN(age) || age < -1 || age > 400) continue;
 
-      const ids = Array.from(new Set(value.filter((id): id is string => typeof id === "string" && Boolean(getExercise(id))))).slice(0, 30);
+      const ids = Array.from(new Set(value.filter((id): id is string => typeof id === "string" && isKnownExercise(id)))).slice(0, 30);
       const existing = byKey.get(key);
       const known = new Set(existing?.completed_exercise_ids ?? []);
       const missing = ids.filter((id) => !known.has(id));
@@ -166,10 +188,11 @@ export async function POST(request: Request) {
 
       const nextIds = [...(existing?.completed_exercise_ids ?? []), ...missing];
       const nextTitles = Array.from(
-        new Set([...(existing?.completed_exercise_titles ?? []), ...missing.map((id) => getExercise(id)?.title ?? id)]),
+        new Set([...(existing?.completed_exercise_titles ?? []), ...missing.map((id) => exerciseTitle(slot, id))]),
       );
       const nextSeconds = (existing?.seconds_practiced ?? 0) + missing.reduce((sum, id) => sum + exerciseSeconds(slot, id), 0);
-      const fullSessionCompleted = nextIds.length >= routineSteps(slot).size;
+      const stepCount = routineSteps(slot).size;
+      const fullSessionCompleted = stepCount > 0 && nextIds.length >= stepCount;
       const last = missing[missing.length - 1];
 
       if (existing?.id) {
@@ -181,7 +204,7 @@ export async function POST(request: Request) {
             seconds_practiced: nextSeconds,
             full_session_completed: fullSessionCompleted,
             last_exercise_id: last,
-            last_exercise_title: getExercise(last)?.title ?? last,
+            last_exercise_title: exerciseTitle(slot, last),
             updated_at: new Date().toISOString(),
           })
           .eq("id", existing.id);
@@ -198,7 +221,7 @@ export async function POST(request: Request) {
           seconds_practiced: nextSeconds,
           full_session_completed: fullSessionCompleted,
           last_exercise_id: last,
-          last_exercise_title: getExercise(last)?.title ?? last,
+          last_exercise_title: exerciseTitle(slot, last),
         });
         // Another device saved the same day at the same moment: it is picked up on the next sync.
         if (error && error.code !== "23505") throw error;
@@ -221,8 +244,8 @@ export async function POST(request: Request) {
     const localSettings = (local.settings && typeof local.settings === "object" ? local.settings : {}) as Record<string, unknown>;
     const mergedSettings: Partial<Record<SyncedSetting, SettingEntry>> = {};
     for (const key of SYNCED_SETTINGS) {
-      const fromServer = readSettingEntry(serverSettings[key]);
-      const fromDevice = readSettingEntry(localSettings[key]);
+      const fromServer = readSettingEntry(serverSettings[key], key);
+      const fromDevice = readSettingEntry(localSettings[key], key);
       const winner = !fromServer ? fromDevice : !fromDevice ? fromServer : Date.parse(fromDevice.at) > Date.parse(fromServer.at) ? fromDevice : fromServer;
       if (winner) mergedSettings[key] = winner;
     }

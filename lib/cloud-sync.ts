@@ -4,6 +4,7 @@ import {
   saveLocalMilestones,
   type LocalMilestoneState,
 } from "@/lib/local-milestones";
+import { LIBRARY_CHANGE_EVENT } from "@/lib/custom-library";
 import { getIdentityRequestFields, updateProfileName } from "@/lib/training-identity";
 import { getProgress, saveProgress } from "@/lib/training-progress";
 import type { VoiceFlexProduct } from "@/lib/training-product";
@@ -21,6 +22,7 @@ const SYNCED_SETTINGS: { id: string; storageKey: (productType: VoiceFlexProduct)
   { id: "bestHold", storageKey: (productType) => `voiceflex_best_hold_${productType}` },
   { id: "review", storageKey: (productType) => `voiceflex_review_request_${productType}` },
   { id: "appSettings", storageKey: () => "voiceflex_settings" },
+  { id: "library", storageKey: (productType) => `voiceflex_library_${productType}` },
 ];
 
 type SettingEntry = { v: string; at: string };
@@ -176,7 +178,11 @@ function applyServerState(
     }
     const entry = payload.settings?.[setting.id];
     if (!entry || typeof entry.v !== "string") continue;
-    if (now !== entry.v) window.localStorage.setItem(key, entry.v);
+    if (now !== entry.v) {
+      window.localStorage.setItem(key, entry.v);
+      // Open pages showing the person's own routines pick up the account's copy.
+      if (setting.id === "library") window.dispatchEvent(new Event(LIBRARY_CHANGE_EVENT));
+    }
     nextMeta[setting.id] = { h: entry.v, at: entry.at };
   }
   window.localStorage.setItem(metaKey(productType), JSON.stringify(nextMeta));

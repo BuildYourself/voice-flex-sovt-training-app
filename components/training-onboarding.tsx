@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, type ComponentType, type Dispatch, type SetStateAction } from "react";
-import { ArrowRight, Check, Menu, RotateCcw, Waves, X } from "lucide-react";
+import { ArrowRight, Check, Menu, Waves, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -14,7 +14,7 @@ import {
 } from "@/lib/training-onboarding";
 import { getStoredOrderAsin } from "@/lib/review-request";
 import type { LocalTrainingProgress } from "@/lib/training-progress";
-import type { VoiceFlexProduct } from "@/lib/training-product";
+import { getProductName, type VoiceFlexProduct } from "@/lib/training-product";
 
 type TrainingOnboardingStep = TrainingOnboardingConfig["steps"][number];
 type TrainingOnboardingInfoCard = TrainingOnboardingConfig["infoCards"][number];
@@ -24,15 +24,13 @@ export function TrainingOnboarding({
   kit,
   caps,
   progress,
-  onComplete,
-  onReset
+  onComplete
 }: {
   productType: VoiceFlexProduct;
   kit?: VoiceFlexKit | null;
   caps?: CapColours;
   progress: LocalTrainingProgress;
   onComplete: () => void;
-  onReset: () => void;
 }) {
   const config = useMemo(
     () => getTrainingOnboardingConfig(productType, kit ?? undefined, caps, getStoredOrderAsin(productType)),
@@ -77,7 +75,6 @@ export function TrainingOnboarding({
         setCurrentStepIndex={setCurrentStepIndex}
         onContinue={continueSetup}
         onComplete={onComplete}
-        onReset={onReset}
       />
 
       <div className="hidden lg:block">
@@ -113,8 +110,7 @@ export function TrainingOnboarding({
           </a>
         </nav>
         <div className="mt-auto rounded-3xl border border-white/10 bg-white/5 p-5 text-sm leading-6 text-white/75">
-          <p className="font-black text-white">No account required</p>
-          <p className="mt-2">Your progress is saved on this device only.</p>
+          <p className="font-black text-white">{getProductName(productType)}</p>
         </div>
       </aside>
 
@@ -282,13 +278,9 @@ export function TrainingOnboarding({
               </Card>
               <Card>
                 <CardContent className="p-6">
-                  <p className="text-sm font-bold uppercase tracking-[0.14em] text-slate-500">Local progress</p>
+                  <p className="text-sm font-bold uppercase tracking-[0.14em] text-slate-500">Your progress</p>
                   <p className="mt-3 text-sm leading-6 text-slate-600">Streak: {progress.streak} {progress.streak === 1 ? "day" : "days"}</p>
                   <p className="text-sm leading-6 text-slate-600">Total minutes: {progress.totalMinutes}</p>
-                  <Button variant="outline" className="mt-5 h-11 w-full rounded-xl font-black" onClick={onReset}>
-                    <RotateCcw className="mr-2 h-4 w-4" />
-                    Reset progress
-                  </Button>
                 </CardContent>
               </Card>
             </aside>
@@ -317,7 +309,6 @@ function MobileTrainingOnboarding({
   setCurrentStepIndex,
   onContinue,
   onComplete,
-  onReset,
 }: {
   config: TrainingOnboardingConfig;
   currentStep: TrainingOnboardingStep;
@@ -335,7 +326,6 @@ function MobileTrainingOnboarding({
   setCurrentStepIndex: Dispatch<SetStateAction<number>>;
   onContinue: () => void;
   onComplete: () => void;
-  onReset: () => void;
 }) {
   return (
     <div className="lg:hidden">

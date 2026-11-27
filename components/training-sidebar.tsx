@@ -6,7 +6,7 @@ import { Waves } from "lucide-react";
 import { getProductName, type VoiceFlexProduct } from "@/lib/training-product";
 import { cn } from "@/lib/utils";
 
-type TrainingSidebarItem = "setup" | "sessions" | "progress" | "milestones" | "settings";
+type TrainingSidebarItem = "setup" | "sessions" | "library" | "progress" | "milestones" | "settings";
 
 const TRAINING_NAV_ITEMS: Array<{
   id: TrainingSidebarItem;
@@ -16,6 +16,7 @@ const TRAINING_NAV_ITEMS: Array<{
 }> = [
   { id: "setup", label: "\u{1F680} Guide", shortLabel: "Guide", href: (productType) => `/train/${productType}?setup=1` },
   { id: "sessions", label: "\u{1F399}️ Routines", shortLabel: "Routines", href: (productType) => `/train/${productType}` },
+  { id: "library", label: "\u{1F4DA} Library", shortLabel: "Library", href: (productType) => `/train/${productType}/library` },
   { id: "progress", label: "\u{1F4CA} Progress", shortLabel: "Progress", href: (productType) => `/train/${productType}/progress` },
   { id: "milestones", label: "\u{1F3C6} Milestones", shortLabel: "Milestones", href: (productType) => `/train/${productType}/milestones` },
   { id: "settings", label: "⚙️ Settings", shortLabel: "Settings", href: (productType) => `/train/${productType}/settings` }
@@ -38,14 +39,14 @@ export function TrainingSidebar({
   return (
     <>
       {mobileNav ? (
-        <nav className="flex items-center gap-1 overflow-x-auto border-b border-slate-200 bg-white px-3 py-3 lg:hidden" aria-label="Training">
+        <nav className="flex items-center gap-0.5 overflow-x-auto border-b border-slate-200 bg-white px-2 py-3 min-[400px]:gap-1 min-[400px]:px-3 lg:hidden" aria-label="Training">
           {TRAINING_NAV_ITEMS.filter((item) => item.id !== "setup").map((item) => (
             <Link
               key={item.id}
               href={item.href(productType)}
               aria-current={item.id === activeItem ? "page" : undefined}
               className={cn(
-                "flex-1 shrink-0 whitespace-nowrap rounded-xl px-2 py-2 text-center text-[13px] font-black text-slate-600 min-[400px]:text-sm",
+                "flex-1 shrink-0 whitespace-nowrap rounded-xl px-1.5 py-2 text-center text-[12px] font-black text-slate-600 min-[400px]:px-2 min-[400px]:text-sm",
                 item.id === activeItem && "bg-electric-600 text-white"
               )}
             >
@@ -81,7 +82,6 @@ export function TrainingSidebar({
 
         <div className="mt-auto rounded-3xl border border-white/10 bg-white/5 p-5 text-sm leading-6 text-white/75">
           <p className="font-black text-white">{productLabel(productType)}</p>
-          <p className="mt-2">No account required. Progress saved on this device.</p>
         </div>
       </aside>
     </>

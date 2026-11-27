@@ -103,6 +103,11 @@ function setupStep(kit: KitProfile, level: ResistanceLevel): TrainingDemoStep {
   };
 }
 
+/** The "tool at the lips" picture and bullets, for exercises people write themselves. */
+export function getSetupDemoStep(kit: KitProfile, level: ResistanceLevel): TrainingDemoStep {
+  return setupStep(kit, level);
+}
+
 function shapeStep(pattern: string, bullets: string[]): TrainingDemoStep {
   return { title: "Step 2", subtitle: "The shape", imageSrc: `${PAT}/${pattern}.svg`, bullets };
 }

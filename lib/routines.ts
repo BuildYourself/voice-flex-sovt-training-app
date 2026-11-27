@@ -1,5 +1,5 @@
 import { getExercise, getExerciseTitle, getExerciseToolLabel, type ExerciseSkill } from "@/lib/exercises";
-import { getKitProfile, type ResistanceLevel, type VoiceFlexKit } from "@/lib/kits";
+import { getKitProfile, type KitProfile, type ResistanceLevel, type VoiceFlexKit } from "@/lib/kits";
 import type { VoiceFlexProduct } from "@/lib/training-product";
 import type { TrainingSessionConfig, TrainingSessionExercise } from "@/lib/training-sessions";
 
@@ -257,30 +257,34 @@ export function getRoutineSkills(id: RoutineId, kit: VoiceFlexKit): ExerciseSkil
   return (["breath", "flexibility", "pitch", "speaking"] as ExerciseSkill[]).filter((skill) => skills.has(skill));
 }
 
+/** One built-in exercise as a session step, worded for this kit and level. */
+export function buildSessionExercise(step: RoutineStep, profile: KitProfile): TrainingSessionExercise | null {
+  const exercise = getExercise(step.exercise);
+  if (!exercise) return null;
+  const text = exercise.text(profile, step.level);
+  return {
+    id: exercise.id,
+    title: getExerciseTitle(exercise, profile),
+    durationSeconds: step.seconds,
+    tool: getExerciseToolLabel(exercise, profile, step.level),
+    description: step.note ? `${text.description} ${step.note}` : text.description,
+    whatToDoNow: text.whatToDoNow,
+    tips: text.tips,
+    avoid: text.avoid,
+    requiresPiano: exercise.requiresPiano,
+    demoSteps: exercise.demoSteps?.(profile, step.level),
+    demoAudioSrc: exercise.demoAudioSrc ?? null,
+    accompanimentAudioSrc: exercise.accompanimentAudioSrc ?? null,
+    guide: exercise.guide,
+  };
+}
+
 export function buildRoutineSession(id: RoutineId, kit: VoiceFlexKit, productType: VoiceFlexProduct): TrainingSessionConfig {
   const routine = ROUTINES[id];
   const profile = getKitProfile(kit);
   const exercises: TrainingSessionExercise[] = resolveRoutineSteps(id, kit).flatMap((step) => {
-    const exercise = getExercise(step.exercise);
-    if (!exercise) return [];
-    const text = exercise.text(profile, step.level);
-    return [
-      {
-        id: exercise.id,
-        title: getExerciseTitle(exercise, profile),
-        durationSeconds: step.seconds,
-        tool: getExerciseToolLabel(exercise, profile, step.level),
-        description: step.note ? `${text.description} ${step.note}` : text.description,
-        whatToDoNow: text.whatToDoNow,
-        tips: text.tips,
-        avoid: text.avoid,
-        requiresPiano: exercise.requiresPiano,
-        demoSteps: exercise.demoSteps?.(profile, step.level),
-        demoAudioSrc: exercise.demoAudioSrc ?? null,
-        accompanimentAudioSrc: exercise.accompanimentAudioSrc ?? null,
-        guide: exercise.guide,
-      },
-    ];
+    const built = buildSessionExercise(step, profile);
+    return built ? [built] : [];
   });
 
   return {
