@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import { Activity, Clock, Info, Leaf, ShieldCheck, Sparkles, Volume1, Waves } from "lucide-react";
-import { CAP_NAMES, getDefaultKit, getKitPhoto, getKitProfile, type CapColours, type VoiceFlexKit } from "@/lib/kits";
+import { CAP_NAMES, getDefaultKit, getKitPhoto, getKitProfile, isBlueGoOrder, type CapColours, type VoiceFlexKit } from "@/lib/kits";
 import { getProductName, type VoiceFlexProduct } from "@/lib/training-product";
 
 export interface TrainingOnboardingStep {
@@ -105,7 +105,13 @@ export function getTrainingOnboardingConfig(
 ): TrainingOnboardingConfig {
   const productName = getProductName(productType);
   const isGo = kit === "go";
-  // Everyone sees the same product photos as the home page, in the colour of their own kit.
+  // Blue GO keeps the original GO pictures (welcome, set-up slider, safe practice), as P chose.
+  // They show the blue GO, so black GO and the other kits get photos and drawings of their own kit.
+  const blueGo = isGo && isBlueGoOrder(sourceAsin);
+  // The two wide pictures with text are shown whole (contain), so no words get cut off.
+  const yourKit = blueGo
+    ? { ...kitStep(kit, caps), imageSrc: "/images/onboarding/3-adjust-resistance.png", imageFit: "contain" as const }
+    : kitStep(kit, caps);
 
   return {
     productType,
@@ -123,8 +129,8 @@ export function getTrainingOnboardingConfig(
         visualTitle: productName,
         visualSubtitle: "Guided SOVT voice training",
         visualKind: isGo ? "go" : "pro",
-        imageSrc: getKitPhoto(productType, kit, sourceAsin, caps),
-        imageFit: "contain",
+        imageSrc: blueGo ? "/images/onboarding/1-welcome.png" : getKitPhoto(productType, kit, sourceAsin, caps),
+        imageFit: blueGo ? "cover" : "contain",
       },
       {
         id: "sovt",
@@ -149,7 +155,7 @@ export function getTrainingOnboardingConfig(
         visualSubtitle: "Air slows at the lips, the voice works easier",
         visualKind: "sovt",
       },
-      kitStep(kit, caps),
+      yourKit,
       {
         id: "get-the-most",
         label: "Get the most",
@@ -182,6 +188,8 @@ export function getTrainingOnboardingConfig(
         visualTitle: "Safe practice",
         visualSubtitle: "Easy airflow, no strain",
         visualKind: "safety",
+        imageSrc: blueGo ? "/images/onboarding/4-safety.png" : undefined,
+        imageFit: "contain",
       },
     ],
     infoCards: [

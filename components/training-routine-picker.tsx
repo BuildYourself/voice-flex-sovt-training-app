@@ -232,7 +232,9 @@ function DailySessionHero({
         </Link>
 
         <p className="mt-5 text-sm leading-6 text-slate-500">
-          Written for <span className="font-black text-navy-950">{kitProfile.name}</span>, with {kitProfile.contents}.
+          Written for <span className="font-black text-navy-950">{kitProfile.name}</span>
+          {/* GO is one trainer, so its contents would only repeat the name. */}
+          {kitProfile.kit === "go" ? "." : `, with ${kitProfile.contents}.`}
         </p>
       </div>
 
